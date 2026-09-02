@@ -95,13 +95,13 @@ export default function Home() {
         { clipPath: "circle(4% at 50% 0%)" },
         {
           clipPath: "circle(150% at 50% 0%)",
-          ease: "power2.inOut",
+          ease: "power1.out",
           scrollTrigger: {
             trigger: ctaSectionRef.current,
             start: "top top",
-            end: "+=70%",
+            end: "+=30%",
             pin: true,
-            scrub: 1,
+            scrub: 0.5,
             refreshPriority: -1,
           },
         }
