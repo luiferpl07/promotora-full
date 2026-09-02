@@ -60,7 +60,6 @@ async function main() {
       { projectId: lagos.id, url: "/assets/real/WhatsApp-Image-2025-08-11-at-10.55.24-AM.jpeg", alt: "Zona de lagos", tipo: "galeria", orden: 1 },
       { projectId: lagos.id, url: "/assets/real/WhatsApp-Image-2025-08-11-at-11.27.53-AM.jpeg", alt: "Entorno natural", tipo: "galeria", orden: 2 },
     ],
-    skipDuplicates: true,
   });
 
   await prisma.project.upsert({
@@ -111,7 +110,6 @@ async function main() {
       { nombre: "Asesor Comercial", rol: "Riviera Esmeralda", proyectoAsignado: "riviera-esmeralda", whatsapp: "https://wa.me/573246425561", img: "/assets/real/IMG-20250414-WA0007.jpg", orden: 2 },
       { nombre: "Asesor Comercial", rol: "Balmoral", proyectoAsignado: "balmoral", whatsapp: "https://wa.me/573246425561", img: "/assets/real/IMG-20250414-WA0007.jpg", orden: 3 },
     ],
-    skipDuplicates: true,
   });
 
   // Seed Como Comprar Steps
