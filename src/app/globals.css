@@ -1,0 +1,142 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-pf-bg: #F7F4ED;
+  --color-pf-dark: #16203A;
+  --color-pf-gold: #C8A23C;
+  --color-pf-blue: #1F4E9C;
+  --color-pf-navy: #1A2440;
+  --color-pf-navy-dark: #202B4C;
+  --color-pf-beige: #E6DFD1;
+  --color-pf-beige-light: #EFEADF;
+
+  --font-sans: var(--font-montserrat);
+  --font-serif: var(--font-playfair);
+  --font-mono: var(--font-montserrat);
+}
+
+:root {
+  --background: var(--color-pf-bg);
+  --foreground: var(--color-pf-dark);
+}
+
+.font-script {
+  font-family: var(--font-pinyon), cursive;
+}
+
+body {
+  margin: 0;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background-color: var(--color-pf-gold);
+  color: var(--color-pf-dark);
+}
+
+@layer base {
+  a {
+    color: var(--color-pf-dark);
+    text-decoration: none;
+  }
+
+  a:hover {
+    color: var(--color-pf-blue);
+  }
+}
+
+input, select, textarea, button {
+  font-family: var(--font-sans);
+}
+
+[data-drag]::-webkit-scrollbar {
+  display: none;
+}
+
+[data-drag] {
+  scrollbar-width: none;
+}
+
+@keyframes pfHint {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(7px);
+    opacity: 0.9;
+  }
+}
+
+@keyframes pfCloudDrift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes pfMarquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.pf-marquee:hover {
+  animation-play-state: paused;
+}
+
+html.lenis, html.lenis body {
+  height: auto;
+  width: 100vw;
+  overflow-x: hidden;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
+@keyframes sway {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
+}
+
+@keyframes sway-alt {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-3deg);
+  }
+}
+
+.sway-animation {
+  animation: sway 8s ease-in-out infinite;
+}
+
+.sway-animation-alt {
+  animation: sway-alt 7s ease-in-out infinite;
+}

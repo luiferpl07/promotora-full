@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Project {
+  id              String         @id @default(cuid())
+  nombre          String
+  slug            String         @unique
+  descripcion     String
+  descripcionLarga String?
+  lotes           Int?
+  areaDesde       Int?
+  reserva         String?
+  planPago        String?
+  estado          String         @default("activo")
+  logo            String?        // URL del logo/escudo del proyecto para el header dinámico
+  imgHero         String?
+  ubicacionTexto  String?
+  googleMapsUrl   String?
+  amenidades      String?        // JSON array de amenidades
+  orden           Int            @default(0)
+  publicado       Boolean        @default(true)
+  images          ProjectImage[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model ProjectImage {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String?
+  orden     Int      @default(0)
+  tipo      String   @default("galeria") // hero | galeria | masterplan | amenidad
+  createdAt DateTime @default(now())
+}
+
+model News {
+  id           String   @id @default(cuid())
+  titulo       String
+  slug         String   @unique
+  resumen      String
+  contenido    String?
+  imgDestacada String?
+  publicado    Boolean  @default(true)
+  fecha        DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Advisor {
+  id                String   @id @default(cuid())
+  nombre            String
+  rol               String
+  proyectoAsignado  String?
+  whatsapp          String?
+  img               String?
+  orden             Int      @default(0)
+  createdAt         DateTime @default(now())
+}
+
+model ContactRequest {
+  id          String   @id @default(cuid())
+  nombre      String
+  telefono    String
+  proyecto    String
+  fechaVisita String?
+  estado      String   @default("pendiente") // pendiente | contactado | cerrado
+  notas       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SiteConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model ComoComprarStep {
+  id        String   @id @default(cuid())
+  numero    String
+  titulo    String
+  texto     String
+  orden     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
