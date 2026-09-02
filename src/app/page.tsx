@@ -39,6 +39,8 @@ export default function Home() {
   const locationTextRef = useRef<HTMLDivElement>(null);
   const palmLeftRef = useRef<HTMLDivElement>(null);
   const palmRightRef = useRef<HTMLDivElement>(null);
+  const ctaSectionRef = useRef<HTMLDivElement>(null);
+  const ctaMaskRef = useRef<HTMLDivElement>(null);
 
   useGSAP(() => {
     // 0. Smooth Background Color Transitions
@@ -81,6 +83,26 @@ export default function Home() {
             pin: true,
             scrub: 1,
             refreshPriority: 10,
+          },
+        }
+      );
+    }
+
+    // 1.5. CTA Reveal (Pinned Clip-Path, inverse of the Arch reveal)
+    if (ctaSectionRef.current && ctaMaskRef.current) {
+      gsap.fromTo(
+        ctaMaskRef.current,
+        { clipPath: "circle(4% at 50% 0%)" },
+        {
+          clipPath: "circle(150% at 50% 0%)",
+          ease: "power2.inOut",
+          scrollTrigger: {
+            trigger: ctaSectionRef.current,
+            start: "top top",
+            end: "+=70%",
+            pin: true,
+            scrub: 1,
+            refreshPriority: 8,
           },
         }
       );
@@ -379,18 +401,23 @@ export default function Home() {
         </section>
 
         {/* 6. Elegant CTA / Footer Typography */}
-        <section data-section-index="6" data-bg-color="var(--color-pf-bg)" className="bg-[var(--color-pf-bg)] text-[var(--color-pf-navy)] pt-40 pb-12 overflow-hidden relative border-t border-[rgba(22,32,58,.1)] flex flex-col justify-between">
-          <div className="max-w-[1400px] mx-auto px-6 text-center relative z-10 flex-grow flex flex-col justify-center">
-            <h2 data-reveal className="font-serif text-[clamp(36px,7vw,90px)] uppercase tracking-tight leading-[1] font-light">
-              ¿Deseas reservar <br/>
-              <span className="font-script text-[var(--color-pf-gold)] text-[clamp(70px,12vw,140px)] lowercase -mt-4 block drop-shadow-sm">tu lote?</span>
-            </h2>
-            <p className="mt-12 text-sm md:text-base tracking-[0.1em] uppercase font-light opacity-80 max-w-lg mx-auto leading-relaxed">
-              Conoce los pasos que debes realizar para adquirir el lote de tus sueños.
-            </p>
-            <Link href="/contacto" className="mt-12 mx-auto w-max px-12 py-5 rounded-full bg-[var(--color-pf-navy)] !text-white text-[11px] tracking-[0.2em] uppercase font-semibold hover:bg-[var(--color-pf-gold)] hover:!text-[var(--color-pf-navy)] transition-colors duration-500 shadow-xl flex items-center justify-center">
-              <span>Más Información</span>
-            </Link>
+        <section data-section-index="6" data-bg-color="var(--color-pf-bg)" ref={ctaSectionRef} className="h-screen w-full relative bg-[var(--color-pf-bg)] overflow-hidden">
+          <div
+            ref={ctaMaskRef}
+            className="absolute inset-0 bg-[var(--color-pf-navy)] flex flex-col items-center justify-center px-6"
+          >
+            <div className="max-w-[1400px] mx-auto text-center relative z-10">
+              <h2 data-reveal className="font-serif text-[clamp(36px,7vw,90px)] uppercase tracking-tight leading-[1] font-light text-white">
+                ¿Deseas reservar <br/>
+                <span className="font-script text-[var(--color-pf-gold)] text-[clamp(70px,12vw,140px)] lowercase -mt-4 block drop-shadow-sm">tu lote?</span>
+              </h2>
+              <p data-reveal className="mt-12 text-sm md:text-base tracking-[0.1em] uppercase font-light text-white/70 max-w-lg mx-auto leading-relaxed">
+                Conoce los pasos que debes realizar para adquirir el lote de tus sueños.
+              </p>
+              <Link href="/contacto" data-reveal className="mt-12 mx-auto w-max px-12 py-5 rounded-full bg-[var(--color-pf-gold)] !text-[var(--color-pf-navy)] text-[11px] tracking-[0.2em] uppercase font-semibold hover:bg-white transition-colors duration-500 shadow-xl flex items-center justify-center">
+                <span>Más Información</span>
+              </Link>
+            </div>
           </div>
         </section>
           <Footer />
