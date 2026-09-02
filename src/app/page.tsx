@@ -102,7 +102,7 @@ export default function Home() {
             end: "+=70%",
             pin: true,
             scrub: 1,
-            refreshPriority: 8,
+            refreshPriority: -1,
           },
         }
       );
