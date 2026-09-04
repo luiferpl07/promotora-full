@@ -34,6 +34,7 @@ export default function Home() {
   }, []);
   const archSectionRef = useRef<HTMLDivElement>(null);
   const archMaskRef = useRef<HTMLDivElement>(null);
+  const archTextPathRef = useRef<SVGPathElement>(null);
   const curvedTextRef = useRef<HTMLDivElement>(null);
   const horizontalScrollRef = useRef<HTMLDivElement>(null);
   const locationSectionRef = useRef<HTMLDivElement>(null);
@@ -69,24 +70,33 @@ export default function Home() {
       });
     });
 
-    // 1. Smooth Arch Reveal (Pinned Clip-Path)
+    // 1. Smooth Arch Reveal (Pinned Clip-Path) + text curving along the same arc
     if (archSectionRef.current && archMaskRef.current) {
-      gsap.fromTo(
-        archMaskRef.current,
-        { clipPath: "circle(5% at 50% 100%)" },
-        {
-          clipPath: "circle(150% at 50% 100%)",
-          ease: "power2.inOut",
-          scrollTrigger: {
-            trigger: archSectionRef.current,
-            start: "top top",
-            end: "+=80%",
-            pin: true,
-            scrub: 1,
-            refreshPriority: 10,
-          },
+      const archProgress = { percent: 5 };
+      const updateArch = () => {
+        const p = archProgress.percent;
+        if (archMaskRef.current) {
+          archMaskRef.current.style.clipPath = `circle(${p}% at 50% 100%)`;
         }
-      );
+        if (archTextPathRef.current) {
+          const r = Math.min(280 + p * 2, 480);
+          archTextPathRef.current.setAttribute("d", `M ${800 - r},900 A ${r},${r} 0 0 1 ${800 + r},900`);
+        }
+      };
+      updateArch();
+      gsap.to(archProgress, {
+        percent: 150,
+        ease: "power2.inOut",
+        onUpdate: updateArch,
+        scrollTrigger: {
+          trigger: archSectionRef.current,
+          start: "top top",
+          end: "+=80%",
+          pin: true,
+          scrub: 1,
+          refreshPriority: 10,
+        },
+      });
     }
 
     // 1.5. CTA Reveal (Pinned Clip-Path, inverse of the Arch reveal)
@@ -249,8 +259,29 @@ export default function Home() {
 
         {/* 1. Dynamic Arch Section: ¿Por qué elegirnos? */}
         <section data-section-index="1" data-bg-color="var(--color-pf-navy)" ref={archSectionRef} className="h-screen w-full relative bg-[var(--color-pf-navy)] overflow-hidden">
-          <div 
-            ref={archMaskRef} 
+          {/* Brand text curving along the same arc as the reveal below — only ever visible on the navy, swallowed by the beige as it grows */}
+          <svg
+            viewBox="0 0 1600 900"
+            preserveAspectRatio="none"
+            className="hidden lg:block absolute inset-0 w-full h-full pointer-events-none select-none z-0"
+            aria-hidden="true"
+          >
+            <defs>
+              <path ref={archTextPathRef} id="archTextPath" d="M 775,900 A 25,25 0 0 1 825,900" fill="none" />
+            </defs>
+            <text
+              fill="var(--color-pf-gold)"
+              style={{ fontSize: "72px", letterSpacing: "0.2em", fontFamily: "var(--font-playfair)" }}
+              className="uppercase"
+            >
+              <textPath href="#archTextPath" startOffset="50%" textAnchor="middle">
+                Promotoras Full
+              </textPath>
+            </text>
+          </svg>
+
+          <div
+            ref={archMaskRef}
             className="absolute inset-0 bg-[var(--color-pf-beige)] flex flex-col items-center justify-center pt-20"
           >
             <h2 data-reveal className="font-serif text-[clamp(28px,5vw,64px)] uppercase tracking-[0.2em] text-[var(--color-pf-navy)] text-center max-w-[1000px] leading-[1.2] font-light px-6 mb-4">
@@ -275,6 +306,7 @@ export default function Home() {
               </div>
             </div>
           </div>
+
         </section>
 
         {/* 2. Proyectos Destacados (Parallax Intro) */}
