@@ -81,17 +81,14 @@ export default function Home() {
           archMaskRef.current.style.clipPath = `circle(${p}% at 50% 100%)`;
         }
         if (archTextPathRef.current) {
-          // Starts flat (huge radius) centered mid-screen, then curves to
-          // match the reveal's arc and rises off the top until it's gone.
-          const R = 6000 - t * (6000 - 380);
-          const peakY = 450 - t * 750;
-          const cy = peakY + R;
+          // Radius tracks the mask's own growth (same math CSS uses for
+          // circle(p% at 50% 100%)), so the text rides right on the boundary
+          // of the beige circle as it expands — staying on the navy/outer
+          // side the whole time, and naturally leaving the screen once the
+          // circle grows past the viewport instead of an artificial fade.
+          const R = Math.max(60, p * 13);
+          const cy = 900 - R;
           archTextPathRef.current.setAttribute("d", `M ${800 - R},${cy} A ${R},${R} 0 0 1 ${800 + R},${cy}`);
-        }
-        if (archTextRef.current) {
-          const fadeStart = 0.7;
-          const opacity = t < fadeStart ? 1 : 1 - (t - fadeStart) / (1 - fadeStart);
-          archTextRef.current.style.opacity = String(opacity);
         }
       };
       updateArch();
@@ -270,7 +267,7 @@ export default function Home() {
 
         {/* 1. Dynamic Arch Section: ¿Por qué elegirnos? */}
         <section data-section-index="1" data-bg-color="var(--color-pf-navy)" ref={archSectionRef} className="h-screen w-full relative bg-[var(--color-pf-navy)] overflow-hidden">
-          {/* Brand text curving along the same arc as the reveal below — only ever visible on the navy, swallowed by the beige as it grows */}
+          {/* Brand text riding the exact edge of the beige circle as it grows — stays on the navy/outer side of the boundary, moving up and off-screen as the reveal finishes */}
           <svg
             viewBox="0 0 1600 900"
             preserveAspectRatio="none"
