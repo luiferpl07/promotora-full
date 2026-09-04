@@ -4,7 +4,7 @@ import Navigation from "@/components/Navigation";
 import Hero from "@/components/Hero";
 import ScrollBadge from "@/components/ScrollBadge";
 import CloudsDrift from "@/components/CloudsDrift";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -34,6 +34,7 @@ export default function Home() {
   }, []);
   const archSectionRef = useRef<HTMLDivElement>(null);
   const archMaskRef = useRef<HTMLDivElement>(null);
+  const archSvgRef = useRef<SVGSVGElement>(null);
   const archTextPathRef = useRef<SVGPathElement>(null);
   const archTextRef = useRef<SVGTextElement>(null);
   const curvedTextRef = useRef<HTMLDivElement>(null);
@@ -44,6 +45,20 @@ export default function Home() {
   const palmRightRef = useRef<HTMLDivElement>(null);
   const ctaSectionRef = useRef<HTMLDivElement>(null);
   const ctaMaskRef = useRef<HTMLDivElement>(null);
+  const archDimsRef = useRef({ w: 1600, h: 900 });
+
+  useLayoutEffect(() => {
+    const syncDims = () => {
+      const rect = archSectionRef.current?.getBoundingClientRect();
+      if (rect && rect.width > 0 && rect.height > 0) {
+        archDimsRef.current = { w: rect.width, h: rect.height };
+        archSvgRef.current?.setAttribute("viewBox", `0 0 ${rect.width} ${rect.height}`);
+      }
+    };
+    syncDims();
+    window.addEventListener("resize", syncDims);
+    return () => window.removeEventListener("resize", syncDims);
+  }, []);
 
   useGSAP(() => {
     // 0. Smooth Background Color Transitions
@@ -76,19 +91,25 @@ export default function Home() {
       const archProgress = { percent: 5 };
       const updateArch = () => {
         const p = archProgress.percent;
-        const t = Math.min(1, Math.max(0, (p - 5) / (150 - 5)));
         if (archMaskRef.current) {
           archMaskRef.current.style.clipPath = `circle(${p}% at 50% 100%)`;
         }
         if (archTextPathRef.current) {
-          // Radius tracks the mask's own growth (same math CSS uses for
-          // circle(p% at 50% 100%)), so the text rides right on the boundary
-          // of the beige circle as it expands — staying on the navy/outer
-          // side the whole time, and naturally leaving the screen once the
-          // circle grows past the viewport instead of an artificial fade.
-          const R = Math.max(60, p * 13);
-          const cy = 900 - R;
-          archTextPathRef.current.setAttribute("d", `M ${800 - R},${cy} A ${R},${R} 0 0 1 ${800 + R},${cy}`);
+          // Same radius formula CSS's circle(p% ...) uses internally
+          // (percentage of the box's diagonal / sqrt(2)) applied to the
+          // section's REAL pixel size (archDimsRef, kept in sync with the
+          // viewBox), so the arc we draw sits exactly on the true boundary
+          // of the beige circle as it grows — right on the edge, not
+          // drifting off it the way a fixed 1600x900 viewBox would on any
+          // screen that isn't exactly 16:9.
+          // Floored so the text never has to curve tighter than it can fit —
+          // below that size it just waits, already glued to where the edge
+          // will be, until the real boundary grows out to meet it.
+          const { w, h } = archDimsRef.current;
+          const R = Math.max(340, (p / 100) * (Math.sqrt(w ** 2 + h ** 2) / Math.SQRT2));
+          const cx = w / 2;
+          const cy = h - R;
+          archTextPathRef.current.setAttribute("d", `M ${cx - R},${cy} A ${R},${R} 0 0 1 ${cx + R},${cy}`);
         }
       };
       updateArch();
@@ -269,8 +290,8 @@ export default function Home() {
         <section data-section-index="1" data-bg-color="var(--color-pf-navy)" ref={archSectionRef} className="h-screen w-full relative bg-[var(--color-pf-navy)] overflow-hidden">
           {/* Brand text riding the exact edge of the beige circle as it grows — stays on the navy/outer side of the boundary, moving up and off-screen as the reveal finishes */}
           <svg
+            ref={archSvgRef}
             viewBox="0 0 1600 900"
-            preserveAspectRatio="none"
             className="hidden lg:block absolute inset-0 w-full h-full pointer-events-none select-none z-0"
             aria-hidden="true"
           >

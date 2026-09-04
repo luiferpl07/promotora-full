@@ -4,9 +4,32 @@ import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import Image from "next/image";
 
+const DEFAULT_IMG_DIA = "/assets/real/Lagos-del-palmar.jpeg";
+const DEFAULT_IMG_NOCHE = "/assets/real/Escena-4.png";
+
 export default function Hero() {
   const container = useRef<HTMLDivElement>(null);
   const [isDay, setIsDay] = useState(true);
+  const [media, setMedia] = useState({
+    imgDia: DEFAULT_IMG_DIA,
+    imgNoche: DEFAULT_IMG_NOCHE,
+    videoDia: "",
+    videoNoche: "",
+  });
+
+  useEffect(() => {
+    fetch("/api/site-config")
+      .then(r => r.json())
+      .then((cfg: Record<string, string>) => {
+        setMedia({
+          imgDia: cfg.hero_img_dia || DEFAULT_IMG_DIA,
+          imgNoche: cfg.hero_img_noche || DEFAULT_IMG_NOCHE,
+          videoDia: cfg.hero_video_dia || "",
+          videoNoche: cfg.hero_video_noche || "",
+        });
+      })
+      .catch(console.error);
+  }, []);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -25,14 +48,20 @@ export default function Hero() {
       
       {/* Background Media Layer (Day / Night Toggleable) */}
       <div className="absolute inset-0 z-0">
-        <div 
-          className={`absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat transition-opacity duration-1000 ease-in-out scale-105 ${isDay ? 'opacity-100' : 'opacity-0'}`}
-          style={{ backgroundImage: "url('/assets/real/Lagos-del-palmar.jpeg')" }}
-        />
-        <div 
-          className={`absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat transition-opacity duration-1000 ease-in-out scale-105 ${!isDay ? 'opacity-100' : 'opacity-0'}`}
-          style={{ backgroundImage: "url('/assets/real/Escena-4.png')" }}
-        />
+        <div className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${isDay ? 'opacity-100' : 'opacity-0'}`}>
+          {media.videoDia ? (
+            <video src={media.videoDia} className="w-full h-full object-cover scale-105" autoPlay muted loop playsInline />
+          ) : (
+            <div className="w-full h-full bg-cover bg-center bg-no-repeat scale-105" style={{ backgroundImage: `url('${media.imgDia}')` }} />
+          )}
+        </div>
+        <div className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${!isDay ? 'opacity-100' : 'opacity-0'}`}>
+          {media.videoNoche ? (
+            <video src={media.videoNoche} className="w-full h-full object-cover scale-105" autoPlay muted loop playsInline />
+          ) : (
+            <div className="w-full h-full bg-cover bg-center bg-no-repeat scale-105" style={{ backgroundImage: `url('${media.imgNoche}')` }} />
+          )}
+        </div>
         <div className="absolute inset-0 bg-black/20" />
       </div>
 

@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, Card, CardTitle, Field, Icon, IconName, LoadingBlock, TextArea, TextInput } from "@/components/admin/AdminUI";
 
 type Config = Record<string, string>;
+
+const HERO_DEFAULTS: Record<string, string> = {
+  hero_img_dia: "/assets/real/Lagos-del-palmar.jpeg",
+  hero_img_noche: "/assets/real/Escena-4.png",
+};
 
 const SECTIONS: { title: string; icon: IconName; keys: { key: string; label: string; textarea?: boolean }[] }[] = [
   {
@@ -58,6 +63,101 @@ const SECTIONS: { title: string; icon: IconName; keys: { key: string; label: str
   },
 ];
 
+async function uploadFile(file: File, folder: string): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("folder", folder);
+  const res = await fetch("/api/upload", { method: "POST", body: fd });
+  const data = await res.json();
+  return data.url;
+}
+
+function HeroMediaSlot({
+  title, imgKey, videoKey, config, onChange,
+}: {
+  title: string;
+  imgKey: string;
+  videoKey: string;
+  config: Config;
+  onChange: (key: string, value: string) => void;
+}) {
+  const [imgUploading, setImgUploading] = useState(false);
+  const [videoUploading, setVideoUploading] = useState(false);
+  const imgInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
+  const imgUrl = config[imgKey] || HERO_DEFAULTS[imgKey] || "";
+  const videoUrl = config[videoKey] || "";
+
+  const handleImgFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImgUploading(true);
+    try {
+      onChange(imgKey, await uploadFile(file, "hero"));
+    } finally {
+      setImgUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleVideoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setVideoUploading(true);
+    try {
+      onChange(videoKey, await uploadFile(file, "hero"));
+    } finally {
+      setVideoUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  return (
+    <div className="grid md:grid-cols-2 gap-6 pt-5 first:pt-0 border-t border-[var(--color-pf-navy)]/10 first:border-0">
+      <div>
+        <p className="text-[10px] uppercase tracking-[0.2em] font-mono font-medium text-[var(--color-pf-navy)]/50 mb-3">{title}</p>
+        <div className="w-full aspect-video border-2 border-dashed border-[var(--color-pf-navy)]/15 rounded-xl overflow-hidden bg-[var(--color-pf-beige-light)]">
+          {videoUrl ? (
+            <video src={videoUrl} className="w-full h-full object-cover" muted loop autoPlay playsInline />
+          ) : imgUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={imgUrl} alt={title} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-[var(--color-pf-navy)]/20 text-sm">Sin imagen</div>
+          )}
+        </div>
+        {videoUrl && <p className="text-[11px] text-[var(--color-pf-navy)]/40 mt-2">Mostrando video de fondo (tiene prioridad sobre la imagen).</p>}
+      </div>
+      <div className="space-y-4">
+        <div>
+          <input ref={imgInputRef} type="file" accept="image/*" onChange={handleImgFile} className="hidden" />
+          <Button variant="outline" size="sm" onClick={() => imgInputRef.current?.click()} disabled={imgUploading}>
+            <Icon name="upload" className="w-4 h-4" /> {imgUploading ? "Subiendo..." : "Subir Imagen"}
+          </Button>
+        </div>
+        <Field label="O pega la URL de la imagen">
+          <TextInput type="text" value={config[imgKey] || ""} placeholder={HERO_DEFAULTS[imgKey] || ""} onChange={e => onChange(imgKey, e.target.value)} />
+        </Field>
+        <div className="pt-2 border-t border-[var(--color-pf-navy)]/10">
+          <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoFile} className="hidden" />
+          <Button variant="outline" size="sm" onClick={() => videoInputRef.current?.click()} disabled={videoUploading}>
+            <Icon name="upload" className="w-4 h-4" /> {videoUploading ? "Subiendo..." : "Subir Video"}
+          </Button>
+        </div>
+        <Field label="O pega la URL del video" hint="Déjalo vacío para usar solo la imagen. Formato MP4 recomendado.">
+          <TextInput type="text" value={config[videoKey] || ""} onChange={e => onChange(videoKey, e.target.value)} />
+        </Field>
+        {videoUrl && (
+          <Button variant="ghost" size="sm" onClick={() => onChange(videoKey, "")}>
+            <Icon name="trash" className="w-4 h-4" /> Quitar video
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminConfiguracion() {
   const [config, setConfig] = useState<Config>({});
   const [loading, setLoading] = useState(true);
@@ -104,6 +204,15 @@ export default function AdminConfiguracion() {
           {saved ? <><Icon name="check" className="w-4 h-4" /> Guardado</> : saving ? "Guardando..." : "Guardar Cambios"}
         </Button>
       </div>
+
+      <Card className="p-6 space-y-6">
+        <CardTitle hint="(Fondo del Hero en la página de inicio, para el modo Día y Noche)">
+          <Icon name="image" className="w-4 h-4 text-[var(--color-pf-gold)]" />
+          Portada (Hero)
+        </CardTitle>
+        <HeroMediaSlot title="Día" imgKey="hero_img_dia" videoKey="hero_video_dia" config={config} onChange={handleChange} />
+        <HeroMediaSlot title="Noche" imgKey="hero_img_noche" videoKey="hero_video_noche" config={config} onChange={handleChange} />
+      </Card>
 
       {SECTIONS.map(section => (
         <Card key={section.title} className="p-6 space-y-5">
