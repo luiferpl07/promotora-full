@@ -115,7 +115,7 @@ export default function Contacto() {
       <main className="overflow-x-hidden font-sans relative z-10 text-[var(--color-pf-bg)]">
 
         {/* Dark Hero Section */}
-        <section className="relative min-h-[90vh] flex flex-col items-center justify-center pt-32 pb-24 px-8 overflow-hidden bg-[var(--color-pf-navy)]">
+        <section className="relative min-h-screen flex flex-col items-center justify-center pt-32 pb-24 px-8 overflow-hidden bg-[var(--color-pf-navy)]">
           <div data-parallax className="absolute inset-0 z-0">
              <div data-zoom className="absolute inset-[-10%] w-[120%] h-[120%]">
                <Image 
@@ -126,7 +126,7 @@ export default function Contacto() {
                  priority
                />
              </div>
-             <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-pf-navy)]/80 via-black/50 to-[var(--color-pf-bg)]"></div>
+             <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-pf-navy)]/80 via-black/50 to-black/80"></div>
           </div>
           
           <div className="relative z-10 text-center w-full max-w-[1400px] mx-auto mt-auto pb-[10vh]">
@@ -136,7 +136,7 @@ export default function Contacto() {
               </span>
             </div>
             
-            <h1 className="font-serif text-[clamp(40px,8vw,120px)] uppercase tracking-tighter leading-[0.85] font-normal scale-y-110 text-white">
+            <h1 className="font-serif text-[clamp(40px,8vw,120px)] uppercase tracking-tighter leading-[0.85] font-normal scale-y-110 text-white drop-shadow-2xl">
               <div className="overflow-hidden"><div className="hero-title-line">AGENDA TU</div></div>
               <div className="overflow-hidden"><div className="hero-title-line text-[var(--color-pf-gold)]">VISITA</div></div>
             </h1>
@@ -297,3 +297,4 @@ export default function Contacto() {
     </div>
   );
 }
+

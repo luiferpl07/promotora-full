@@ -43,9 +43,14 @@ export default function ProjectDetail() {
       .finally(() => setLoading(false));
   }, [params.slug]);
 
+  // Hero animation — runs once on mount
+  useEffect(() => {
+    gsap.fromTo(".hero-title-line", { y: 100, opacity: 0 }, { y: 0, opacity: 1, duration: 1.5, ease: "power4.out", stagger: 0.2 });
+    gsap.fromTo(".hero-script", { opacity: 0, scale: 0.95 }, { opacity: 1, scale: 1, duration: 2, ease: "power2.out", delay: 0.4 });
+  }, []);
+
   useGSAP(() => {
     if (!project) return;
-    gsap.fromTo(".hero-title-line", { y: 100, opacity: 0 }, { y: 0, opacity: 1, duration: 1.5, ease: "power4.out", stagger: 0.15 });
 
     const revealElements = gsap.utils.toArray("[data-reveal]") as HTMLElement[];
     revealElements.forEach((el) => {
@@ -83,7 +88,7 @@ export default function ProjectDetail() {
              <div data-zoom className="absolute inset-[-10%] w-[120%] h-[120%]">
                {project.imgHero && <Image src={project.imgHero} alt={project.nombre} fill className="object-cover opacity-80" priority />}
              </div>
-             <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-[var(--color-pf-bg)]"></div>
+             <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-black/80"></div>
           </div>
           
           <div className="relative z-10 text-center w-full max-w-[1400px] mx-auto flex flex-col items-center mt-auto pb-32">
@@ -93,7 +98,7 @@ export default function ProjectDetail() {
               </span>
             </div>
             
-            <h1 className="font-serif text-[clamp(50px,10vw,160px)] uppercase tracking-tighter leading-[0.85] font-normal scale-y-110 text-white">
+            <h1 className="font-serif text-[clamp(50px,10vw,160px)] uppercase tracking-tighter leading-[0.85] font-normal scale-y-110 text-white drop-shadow-2xl">
               <div className="overflow-hidden"><div className="hero-title-line">{project.nombre}</div></div>
             </h1>
           </div>

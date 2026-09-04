@@ -34,10 +34,13 @@ export default function Proyectos() {
       .catch(console.error);
   }, []);
 
-  useGSAP(() => {
-    gsap.fromTo(".hero-title-line", { y: 100, opacity: 0 }, { y: 0, opacity: 1, duration: 1.5, ease: "power4.out", stagger: 0.15 });
-    gsap.fromTo(".hero-script", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 2, ease: "power2.out", delay: 0.5 });
+  // Hero animation — runs once on mount
+  useEffect(() => {
+    gsap.fromTo(".hero-title-line", { y: 100, opacity: 0 }, { y: 0, opacity: 1, duration: 1.5, ease: "power4.out", stagger: 0.2 });
+    gsap.fromTo(".hero-script", { opacity: 0, scale: 0.95 }, { opacity: 1, scale: 1, duration: 2, ease: "power2.out", delay: 0.4 });
+  }, []);
 
+  useGSAP(() => {
     const revealElements = gsap.utils.toArray("[data-reveal]") as HTMLElement[];
     revealElements.forEach((el) => {
       gsap.fromTo(el, { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 1.2, ease: "power3.out", scrollTrigger: { trigger: el, start: "top 85%", once: true } });
@@ -52,6 +55,7 @@ export default function Proyectos() {
     });
   }, { scope: container, dependencies: [proyectos] });
 
+
   const getHeroImg = (p: Project) => p.images?.find(i => i.tipo === "hero")?.url || p.imgHero;
 
   return (
@@ -61,18 +65,18 @@ export default function Proyectos() {
       <main className="overflow-x-hidden font-sans relative z-10 text-[var(--color-pf-bg)]">
 
         {/* Dark Hero Section */}
-        <section className="relative min-h-[90vh] flex flex-col items-center justify-center pt-32 pb-24 px-8 overflow-hidden">
+        <section className="relative min-h-screen flex flex-col items-center justify-center pt-32 pb-24 px-8 overflow-hidden">
           <div className="absolute inset-0 z-0">
              <Image src="/assets/real/Escena-4.png" alt="Fondo Portafolio" fill className="object-cover opacity-90 scale-105" priority />
              <div className="absolute inset-0 bg-[var(--color-pf-navy)]/40 mix-blend-multiply"></div>
-             <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-[var(--color-pf-bg)]"></div>
+             <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/80"></div>
           </div>
           
           <div className="relative z-10 text-center w-full max-w-[1400px] mx-auto">
             <div className="overflow-hidden mb-6 flex justify-center">
               <span className="hero-title-line font-mono text-[11px] tracking-[0.4em] uppercase text-[var(--color-pf-gold)]">Colección Exclusiva</span>
             </div>
-            <h1 className="font-serif text-[clamp(50px,10vw,150px)] uppercase tracking-tighter leading-[0.85] font-normal scale-y-110">
+            <h1 className="font-serif text-[clamp(50px,10vw,150px)] uppercase tracking-tighter leading-[0.85] font-normal scale-y-110 text-white drop-shadow-2xl">
               <div className="overflow-hidden"><div className="hero-title-line">NUESTROS</div></div>
               <div className="overflow-hidden"><div className="hero-title-line text-[var(--color-pf-gold)]">PROYECTOS</div></div>
             </h1>
@@ -85,7 +89,7 @@ export default function Proyectos() {
         </section>
 
         {/* Gallery Section */}
-        <section className="bg-[var(--color-pf-bg)] text-[var(--color-pf-dark)] py-[clamp(100px,15vw,220px)] relative rounded-t-[40px] md:rounded-t-[80px] -mt-10 shadow-2xl">
+        <section className="bg-[var(--color-pf-bg)] text-[var(--color-pf-dark)] py-[clamp(100px,15vw,220px)] relative rounded-t-[40px] md:rounded-t-[80px] shadow-2xl">
           <div className="max-w-[1500px] mx-auto px-[5%]">
             <div className="grid gap-[150px] md:gap-[250px] relative">
               {proyectos.map((p, i) => {
@@ -132,3 +136,4 @@ export default function Proyectos() {
     </div>
   );
 }
+

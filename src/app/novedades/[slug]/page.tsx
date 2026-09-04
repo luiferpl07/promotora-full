@@ -45,9 +45,14 @@ export default function NovedadDetail() {
       .finally(() => setLoading(false));
   }, [params.slug]);
 
+  // Hero animation — runs once on mount
+  useEffect(() => {
+    gsap.fromTo(".hero-title-line", { y: 100, opacity: 0 }, { y: 0, opacity: 1, duration: 1.5, ease: "power4.out", stagger: 0.2 });
+    gsap.fromTo(".hero-script", { opacity: 0, scale: 0.95 }, { opacity: 1, scale: 1, duration: 2, ease: "power2.out", delay: 0.4 });
+  }, []);
+
   useGSAP(() => {
     if (!novedad) return;
-    gsap.fromTo(".hero-title-line", { y: 100, opacity: 0 }, { y: 0, opacity: 1, duration: 1.5, ease: "power4.out", stagger: 0.15 });
 
     const revealElements = gsap.utils.toArray("[data-reveal]") as HTMLElement[];
     revealElements.forEach((el) => {
@@ -74,14 +79,14 @@ export default function NovedadDetail() {
             {novedad.imgDestacada && (
               <Image src={novedad.imgDestacada} alt={novedad.titulo} fill className="object-cover opacity-60 mix-blend-luminosity grayscale-[50%]" priority />
             )}
-            <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-pf-navy)]/80 via-black/50 to-[var(--color-pf-bg)]"></div>
+             <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-pf-navy)]/80 via-black/50 to-black/80"></div>
           </div>
 
           <div className="relative z-10 text-center w-full max-w-[1000px] mx-auto mt-auto pb-[10vh]">
             <div className="overflow-hidden mb-6 flex justify-center">
               <span className="hero-title-line font-mono text-[11px] tracking-[0.4em] uppercase text-[var(--color-pf-gold)]">{formatDate(novedad.fecha)}</span>
             </div>
-            <h1 className="font-serif text-[clamp(32px,6vw,80px)] uppercase tracking-tighter leading-[0.95] font-normal text-white">
+            <h1 className="font-serif text-[clamp(32px,6vw,80px)] uppercase tracking-tighter leading-[0.95] font-normal text-white drop-shadow-2xl">
               <div className="overflow-hidden"><div className="hero-title-line">{novedad.titulo}</div></div>
             </h1>
           </div>

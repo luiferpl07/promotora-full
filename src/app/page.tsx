@@ -34,6 +34,7 @@ export default function Home() {
   }, []);
   const archSectionRef = useRef<HTMLDivElement>(null);
   const archMaskRef = useRef<HTMLDivElement>(null);
+  const curvedTextRef = useRef<HTMLDivElement>(null);
   const horizontalScrollRef = useRef<HTMLDivElement>(null);
   const locationSectionRef = useRef<HTMLDivElement>(null);
   const locationTextRef = useRef<HTMLDivElement>(null);
@@ -51,8 +52,8 @@ export default function Home() {
         trigger: sec,
         start: "top 50%",
         end: "bottom 50%",
-        onEnter: () => gsap.to("body", { backgroundColor: sec.dataset.bgColor, duration: 1 }),
-        onEnterBack: () => gsap.to("body", { backgroundColor: sec.dataset.bgColor, duration: 1 }),
+        onEnter: () => gsap.to(document.body, { backgroundColor: sec.dataset.bgColor, duration: 1 }),
+        onEnterBack: () => gsap.to(document.body, { backgroundColor: sec.dataset.bgColor, duration: 1 }),
       });
     });
 
@@ -248,20 +249,6 @@ export default function Home() {
 
         {/* 1. Dynamic Arch Section: ¿Por qué elegirnos? */}
         <section data-section-index="1" data-bg-color="var(--color-pf-navy)" ref={archSectionRef} className="h-screen w-full relative bg-[var(--color-pf-navy)] overflow-hidden">
-          {/* Curved script text on navy layer, follows arch rim */}
-          <div className="absolute inset-0 z-10 pointer-events-none flex items-end justify-center pb-[8%]">
-            <svg viewBox="0 0 900 320" className="w-full max-w-[900px]" style={{ overflow: 'visible' }}>
-              <defs>
-                <path id="archRim" d="M 50,300 Q 450,10 850,300" />
-              </defs>
-              <text>
-                <textPath href="#archRim" startOffset="50%" textAnchor="middle"
-                  style={{ fontFamily: 'var(--font-pinyon), cursive', fontSize: '82px', fill: 'var(--color-pf-gold)', letterSpacing: '2px' }}>
-                  promotora Full
-                </textPath>
-              </text>
-            </svg>
-          </div>
           <div 
             ref={archMaskRef} 
             className="absolute inset-0 bg-[var(--color-pf-beige)] flex flex-col items-center justify-center pt-20"

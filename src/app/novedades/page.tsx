@@ -37,10 +37,13 @@ export default function Novedades() {
       .catch(console.error);
   }, []);
 
-  useGSAP(() => {
-    gsap.fromTo(".hero-title-line", { y: 100, opacity: 0 }, { y: 0, opacity: 1, duration: 1.5, ease: "power4.out", stagger: 0.15 });
-    gsap.fromTo(".hero-script", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 2, ease: "power2.out", delay: 0.5 });
+  // Hero animation — runs once on mount
+  useEffect(() => {
+    gsap.fromTo(".hero-title-line", { y: 100, opacity: 0 }, { y: 0, opacity: 1, duration: 1.5, ease: "power4.out", stagger: 0.2 });
+    gsap.fromTo(".hero-script", { opacity: 0, scale: 0.95 }, { opacity: 1, scale: 1, duration: 2, ease: "power2.out", delay: 0.4 });
+  }, []);
 
+  useGSAP(() => {
     const revealElements = gsap.utils.toArray("[data-reveal]") as HTMLElement[];
     revealElements.forEach((el) => {
       gsap.fromTo(el, { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 1.2, ease: "power3.out", scrollTrigger: { trigger: el, start: "top 85%", once: true } });
@@ -66,19 +69,19 @@ export default function Novedades() {
       <ScrollBadge />
       <main className="overflow-x-hidden font-sans relative z-10 text-[var(--color-pf-bg)]">
 
-        <section className="relative min-h-[90vh] flex flex-col items-center justify-center pt-32 pb-24 px-8 overflow-hidden bg-[var(--color-pf-navy)]">
+        <section className="relative min-h-screen flex flex-col items-center justify-center pt-32 pb-24 px-8 overflow-hidden bg-[var(--color-pf-navy)]">
           <div data-parallax className="absolute inset-0 z-0">
              <div data-zoom className="absolute inset-[-10%] w-[120%] h-[120%]">
                <Image src="/assets/real/Lagos-del-palmar.jpeg" alt="Fondo Novedades" fill className="object-cover opacity-60 mix-blend-luminosity grayscale-[50%]" priority />
              </div>
-             <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-pf-navy)]/80 via-black/50 to-[var(--color-pf-bg)]"></div>
+             <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-pf-navy)]/80 via-black/50 to-black/80"></div>
           </div>
 
           <div className="relative z-10 text-center w-full max-w-[1400px] mx-auto mt-auto pb-[10vh]">
             <div className="overflow-hidden mb-6 flex justify-center">
               <span className="hero-title-line font-mono text-[11px] tracking-[0.4em] uppercase text-[var(--color-pf-gold)]">Journal</span>
             </div>
-            <h1 className="font-serif text-[clamp(40px,8vw,120px)] uppercase tracking-tighter leading-[0.85] font-normal scale-y-110 text-white">
+            <h1 className="font-serif text-[clamp(40px,8vw,120px)] uppercase tracking-tighter leading-[0.85] font-normal scale-y-110 text-white drop-shadow-2xl">
               <div className="overflow-hidden"><div className="hero-title-line">NOTICIAS Y</div></div>
               <div className="overflow-hidden"><div className="hero-title-line text-[var(--color-pf-gold)]">NOVEDADES</div></div>
             </h1>
@@ -132,3 +135,4 @@ export default function Novedades() {
     </div>
   );
 }
+
