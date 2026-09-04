@@ -292,7 +292,7 @@ export default function Home() {
             {/* Left Palm Tree */}
             <div 
               ref={palmLeftRef}
-              className="absolute top-[-5%] left-[-5%] w-[60vw] md:w-[42vw] h-[110vh] md:h-[130vh] z-0 origin-bottom-left mix-blend-multiply"
+              className="absolute top-[-5%] left-[-5%] w-[80vw] md:w-[42vw] h-[70vh] md:h-[130vh] opacity-60 md:opacity-100 z-0 origin-bottom-left mix-blend-multiply pointer-events-none"
             >
               <div className="w-full h-full relative sway-animation origin-bottom-left">
                 <Image src="/assets/palms/palm_left_v2.png" alt="Palmera" fill className="object-contain object-top object-left" />
@@ -302,7 +302,7 @@ export default function Home() {
             {/* Right Palm Tree */}
             <div 
               ref={palmRightRef}
-              className="absolute bottom-[-10%] right-[-5%] w-[70vw] md:w-[45vw] h-[60vh] md:h-[70vh] opacity-90 z-0 origin-bottom-right"
+              className="absolute bottom-[-10%] right-[-5%] w-[80vw] md:w-[45vw] h-[50vh] md:h-[70vh] opacity-50 md:opacity-90 z-0 origin-bottom-right pointer-events-none"
             >
               <div className="w-full h-full relative sway-animation-alt origin-bottom-right">
                 <Image src="/assets/palms/palm_bottom_right.png" alt="Palmera" fill className="object-contain object-bottom object-right" />
@@ -310,10 +310,10 @@ export default function Home() {
             </div>
 
             <div className="relative z-10 flex flex-col items-center px-6 mt-[-10vh]">
-              <h2 className="font-serif text-[clamp(50px,12vw,200px)] uppercase tracking-tight leading-[0.8] font-light text-[var(--color-pf-navy)] drop-shadow-2xl opacity-90 text-center">
+              <h2 className="font-serif text-[clamp(40px,12vw,200px)] uppercase tracking-tight leading-[0.8] font-light text-[var(--color-pf-navy)] drop-shadow-2xl opacity-90 text-center">
                 Proyectos
               </h2>
-              <h2 className="font-script text-[clamp(80px,15vw,250px)] leading-[0.5] text-[var(--color-pf-gold)] mt-[-20px] md:mt-[-40px] drop-shadow-2xl text-center">
+              <h2 className="font-script text-[clamp(55px,15vw,250px)] leading-[0.5] text-[var(--color-pf-gold)] mt-[-15px] md:mt-[-40px] drop-shadow-2xl text-center">
                 Destacados
               </h2>
               

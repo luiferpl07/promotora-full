@@ -17,6 +17,8 @@ export default function Hero() {
     videoNoche: "",
   });
 
+  const [isLoaded, setIsLoaded] = useState(false);
+
   useEffect(() => {
     fetch("/api/site-config")
       .then(r => r.json())
@@ -27,8 +29,12 @@ export default function Hero() {
           videoDia: cfg.hero_video_dia || "",
           videoNoche: cfg.hero_video_noche || "",
         });
+        setIsLoaded(true);
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error(err);
+        setIsLoaded(true);
+      });
   }, []);
 
   useEffect(() => {
@@ -47,7 +53,7 @@ export default function Hero() {
     <section ref={container} className="relative h-screen w-full overflow-hidden bg-[var(--color-pf-navy)] text-white font-sans">
       
       {/* Background Media Layer (Day / Night Toggleable) */}
-      <div className="absolute inset-0 z-0">
+      <div className={`absolute inset-0 z-0 transition-opacity duration-1000 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
         <div className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${isDay ? 'opacity-100' : 'opacity-0'}`}>
           {media.videoDia ? (
             <video src={media.videoDia} className="w-full h-full object-cover scale-105" autoPlay muted loop playsInline />
@@ -74,14 +80,14 @@ export default function Hero() {
 
         {/* Center Main Title Block */}
         <div className="text-center relative my-auto hero-text-block mt-[5vh] md:mt-[8vh]">
-          <h1 className="font-serif text-[clamp(60px,12vw,180px)] uppercase tracking-tighter leading-[0.8] drop-shadow-2xl font-normal scale-y-110">
+          <h1 className="font-serif text-[clamp(40px,12vw,180px)] uppercase tracking-tighter leading-[0.8] drop-shadow-2xl font-normal scale-y-110">
             PROMOTORAS
           </h1>
-          <h1 className="font-serif text-[clamp(60px,12vw,180px)] uppercase tracking-tighter leading-[0.8] drop-shadow-2xl font-normal scale-y-110 text-white mt-2">
+          <h1 className="font-serif text-[clamp(40px,12vw,180px)] uppercase tracking-tighter leading-[0.8] drop-shadow-2xl font-normal scale-y-110 text-white mt-2">
             FULL
           </h1>
           {/* Script Overlay */}
-          <span className="font-script text-[clamp(50px,8vw,120px)] text-[var(--color-pf-gold)] capitalize absolute left-1/2 -translate-x-1/2 -bottom-[10%] md:-bottom-[15%] z-20 pointer-events-none drop-shadow-xl" style={{ textShadow: '2px 4px 10px rgba(0,0,0,0.5)'}}>
+          <span className="font-script text-[clamp(35px,8vw,120px)] text-[var(--color-pf-gold)] capitalize absolute left-1/2 -translate-x-1/2 -bottom-[10%] md:-bottom-[15%] z-20 pointer-events-none drop-shadow-xl" style={{ textShadow: '2px 4px 10px rgba(0,0,0,0.5)'}}>
             Lotes Campestres
           </span>
         </div>
@@ -93,7 +99,7 @@ export default function Hero() {
           </span>
 
           {/* Day/Night Toggle */}
-          <div className="flex items-center gap-4 mx-auto w-1/3 justify-center">
+          <div className="flex items-center gap-4 mx-auto w-full md:w-1/3 justify-center mb-6 md:mb-0">
             <button 
               onClick={() => setIsDay(true)} 
               className={`font-mono text-[10px] tracking-[0.3em] uppercase transition-all duration-500 pb-1 border-b-2 ${isDay ? 'text-white border-white' : 'text-white/50 border-transparent hover:text-white/80'}`}
