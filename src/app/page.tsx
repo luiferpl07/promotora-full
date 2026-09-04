@@ -35,6 +35,7 @@ export default function Home() {
   const archSectionRef = useRef<HTMLDivElement>(null);
   const archMaskRef = useRef<HTMLDivElement>(null);
   const archTextPathRef = useRef<SVGPathElement>(null);
+  const archTextRef = useRef<SVGTextElement>(null);
   const curvedTextRef = useRef<HTMLDivElement>(null);
   const horizontalScrollRef = useRef<HTMLDivElement>(null);
   const locationSectionRef = useRef<HTMLDivElement>(null);
@@ -75,12 +76,22 @@ export default function Home() {
       const archProgress = { percent: 5 };
       const updateArch = () => {
         const p = archProgress.percent;
+        const t = Math.min(1, Math.max(0, (p - 5) / (150 - 5)));
         if (archMaskRef.current) {
           archMaskRef.current.style.clipPath = `circle(${p}% at 50% 100%)`;
         }
         if (archTextPathRef.current) {
-          const r = Math.min(280 + p * 2, 480);
-          archTextPathRef.current.setAttribute("d", `M ${800 - r},900 A ${r},${r} 0 0 1 ${800 + r},900`);
+          // Starts flat (huge radius) centered mid-screen, then curves to
+          // match the reveal's arc and rises off the top until it's gone.
+          const R = 6000 - t * (6000 - 380);
+          const peakY = 450 - t * 750;
+          const cy = peakY + R;
+          archTextPathRef.current.setAttribute("d", `M ${800 - R},${cy} A ${R},${R} 0 0 1 ${800 + R},${cy}`);
+        }
+        if (archTextRef.current) {
+          const fadeStart = 0.7;
+          const opacity = t < fadeStart ? 1 : 1 - (t - fadeStart) / (1 - fadeStart);
+          archTextRef.current.style.opacity = String(opacity);
         }
       };
       updateArch();
@@ -270,6 +281,7 @@ export default function Home() {
               <path ref={archTextPathRef} id="archTextPath" d="M 775,900 A 25,25 0 0 1 825,900" fill="none" />
             </defs>
             <text
+              ref={archTextRef}
               fill="var(--color-pf-gold)"
               style={{ fontSize: "72px", letterSpacing: "0.2em", fontFamily: "var(--font-playfair)" }}
               className="uppercase"
