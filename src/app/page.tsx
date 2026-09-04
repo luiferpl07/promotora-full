@@ -248,23 +248,27 @@ export default function Home() {
 
         {/* 1. Dynamic Arch Section: ¿Por qué elegirnos? */}
         <section data-section-index="1" data-bg-color="var(--color-pf-navy)" ref={archSectionRef} className="h-screen w-full relative bg-[var(--color-pf-navy)] overflow-hidden">
+          {/* Curved script text on navy layer, follows arch rim */}
+          <div className="absolute inset-0 z-10 pointer-events-none flex items-end justify-center pb-[8%]">
+            <svg viewBox="0 0 900 320" className="w-full max-w-[900px]" style={{ overflow: 'visible' }}>
+              <defs>
+                <path id="archRim" d="M 50,300 Q 450,10 850,300" />
+              </defs>
+              <text>
+                <textPath href="#archRim" startOffset="50%" textAnchor="middle"
+                  style={{ fontFamily: 'var(--font-pinyon), cursive', fontSize: '82px', fill: 'var(--color-pf-gold)', letterSpacing: '2px' }}>
+                  promotora Full
+                </textPath>
+              </text>
+            </svg>
+          </div>
           <div 
             ref={archMaskRef} 
             className="absolute inset-0 bg-[var(--color-pf-beige)] flex flex-col items-center justify-center pt-20"
           >
-            <div className="relative flex flex-col items-center w-full mb-4">
-              <svg viewBox="0 0 800 200" className="w-full max-w-[800px] absolute -top-12 md:-top-24 pointer-events-none" style={{ overflow: 'visible' }}>
-                <path id="textCurve" d="M 100,200 Q 400,0 700,200" fill="transparent" />
-                <text>
-                  <textPath href="#textCurve" startOffset="50%" textAnchor="middle" className="font-script text-[var(--color-pf-gold)] text-[60px] md:text-[100px]" fill="currentColor">
-                    Promotora Full
-                  </textPath>
-                </text>
-              </svg>
-              <h2 data-reveal className="font-serif text-[clamp(28px,5vw,64px)] uppercase tracking-[0.2em] text-[var(--color-pf-navy)] text-center max-w-[1000px] leading-[1.2] font-light px-6 mt-16 md:mt-24">
-                ¿Por qué elegirnos?
-              </h2>
-            </div>
+            <h2 data-reveal className="font-serif text-[clamp(28px,5vw,64px)] uppercase tracking-[0.2em] text-[var(--color-pf-navy)] text-center max-w-[1000px] leading-[1.2] font-light px-6 mb-4">
+              ¿Por qué elegirnos?
+            </h2>
             <p data-reveal className="text-center max-w-[800px] text-lg opacity-70 mb-16 px-6 font-light">
               Estamos comprometidos a brindar un servicio excepcional y ayudarlo a encontrar la propiedad perfecta. Estas son algunas razones para elegirnos:
             </p>
