@@ -62,7 +62,7 @@ export default function Hero() {
             <div className="w-full h-full bg-cover bg-center bg-no-repeat scale-105" style={{ backgroundImage: `url('${media.imgNoche}')` }} />
           )}
         </div>
-        <div className="absolute inset-0 bg-black/20" />
+        <div className={`absolute inset-0 transition-colors duration-1000 ${((isDay && media.videoDia) || (!isDay && media.videoNoche)) ? 'bg-transparent' : 'bg-black/20'}`} />
       </div>
 
       {/* UI Controls Overlay */}

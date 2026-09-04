@@ -46,4 +46,4 @@ next-env.d.ts
 .claude
 
 # user-uploaded media (local filesystem only, not meant for the repo)
-/public/uploads
+# /public/uploads
