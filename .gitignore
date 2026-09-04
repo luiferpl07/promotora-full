@@ -44,3 +44,6 @@ next-env.d.ts
 /prisma/dev.db
 /prisma/dev.db-journal
 .claude
+
+# user-uploaded media (local filesystem only, not meant for the repo)
+/public/uploads

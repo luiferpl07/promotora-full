@@ -21,15 +21,25 @@ export default function Navigation({ customLogo }: NavigationProps = {}) {
 
   const getLinkClass = (path: string) => {
     const isActive = pathname === path || (path !== '/' && pathname?.startsWith(path));
-    return `pb-1 border-b-2 transition-colors ${isActive ? 'border-[var(--color-pf-gold)] text-[var(--color-pf-navy)]' : 'border-transparent hover:text-[var(--color-pf-navy)]'}`;
+    const activeText = scrolled ? "text-[var(--color-pf-navy)]" : "text-white";
+    const defaultText = scrolled ? "text-[#4a4a4a]" : "text-white/90";
+    const hoverText = scrolled ? "hover:text-[var(--color-pf-navy)]" : "hover:text-white";
+    return `pb-1 border-b-2 transition-colors ${isActive ? `border-[var(--color-pf-gold)] ${activeText}` : `border-transparent ${defaultText} ${hoverText}`}`;
   };
 
   useEffect(() => {
+    // Transparent for the entire hero (one full viewport height); solid
+    // only once it has scrolled completely out of view — no early cutoff.
     const onScroll = () => {
-      setScrolled(window.scrollY > 60);
+      setScrolled(window.scrollY >= window.innerHeight);
     };
+    onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("resize", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
   }, []);
 
   useEffect(() => {
@@ -44,14 +54,18 @@ export default function Navigation({ customLogo }: NavigationProps = {}) {
     <>
       <div className="fixed top-0 left-0 right-0 z-[90] flex justify-center w-full pointer-events-none">
         <nav
-          className={`pointer-events-auto w-full items-center transition-all duration-500 ease-in-out border-b border-[#cba76b]/40 shadow-sm bg-[rgba(247,244,237,.95)] backdrop-blur-md px-5 md:px-12 py-3 md:py-5`}
+          className={`pointer-events-auto w-full items-center transition-all duration-500 ease-in-out px-5 md:px-12 py-3 md:py-5 ${
+            scrolled
+              ? "border-b border-[#cba76b]/40 shadow-sm bg-[rgba(247,244,237,.95)] backdrop-blur-md"
+              : "border-b border-transparent shadow-none bg-transparent"
+          }`}
         >
           {/* Mobile Header */}
           <div className="flex lg:hidden items-center justify-between">
             <button
               onClick={() => setMenuOpen(true)}
               aria-label="Abrir menú"
-              className="p-2 -ml-2 text-[var(--color-pf-navy)]"
+              className={`p-2 -ml-2 transition-colors ${scrolled ? "text-[var(--color-pf-navy)]" : "text-white"}`}
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                 <line x1="3" y1="6" x2="21" y2="6" />
@@ -73,7 +87,7 @@ export default function Navigation({ customLogo }: NavigationProps = {}) {
             <Link
               href="/contacto"
               aria-label="Agendar Visita"
-              className="p-2 -mr-2 text-[var(--color-pf-navy)]"
+              className={`p-2 -mr-2 transition-colors ${scrolled ? "text-[var(--color-pf-navy)]" : "text-white"}`}
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -87,7 +101,7 @@ export default function Navigation({ customLogo }: NavigationProps = {}) {
           {/* Desktop Header */}
           <div className="hidden lg:grid grid-cols-[1fr_auto_1fr] items-center">
             {/* Left Side */}
-            <div className="flex gap-8 items-center justify-end pr-16 xl:pr-32 text-xs tracking-[0.15em] uppercase font-semibold text-[#4a4a4a]">
+            <div className={`flex gap-8 items-center justify-end pr-16 xl:pr-32 text-xs tracking-[0.15em] uppercase font-semibold transition-colors ${scrolled ? "text-[#4a4a4a]" : "text-white/90"}`}>
               <div className="flex gap-10 items-center">
                 <Link href="/" className={getLinkClass('/')}>Inicio</Link>
                 <Link href="/proyectos" className={getLinkClass('/proyectos')}>Proyectos</Link>
@@ -107,7 +121,7 @@ export default function Navigation({ customLogo }: NavigationProps = {}) {
             </Link>
 
             {/* Right Side */}
-            <div className="flex items-center justify-start gap-10 pl-16 xl:pl-32 text-xs tracking-[0.15em] uppercase font-semibold text-[#4a4a4a]">
+            <div className={`flex items-center justify-start gap-10 pl-16 xl:pl-32 text-xs tracking-[0.15em] uppercase font-semibold transition-colors ${scrolled ? "text-[#4a4a4a]" : "text-white/90"}`}>
               <div className="flex gap-10 items-center">
                 <Link href="/como-comprar" className={getLinkClass('/como-comprar')}>Cómo comprar</Link>
                 <Link href="/novedades" className={getLinkClass('/novedades')}>Novedades</Link>
