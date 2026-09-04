@@ -114,13 +114,6 @@ export default function Hero() {
           </span>
         </div>
       </div>
-
-      {/* Left Side Scroll Indicator */}
-      <div className="absolute left-8 bottom-1/4 -rotate-90 origin-left text-[9px] tracking-[0.4em] uppercase text-white/70 flex items-center gap-4 hero-text-block">
-        <span>SCROLL</span>
-        <span className="w-12 h-[1px] bg-white/50"></span>
-      </div>
-
     </section>
   );
 }
