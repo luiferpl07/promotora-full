@@ -1,4 +1,5 @@
 import sharp from "sharp";
+import { PLAN_SHEET_EXCLUSIONS } from "./planSheetRegions";
 
 export interface DetectedLot {
   // 4 corners as fractions (0-1) of the source image's width/height
@@ -63,16 +64,8 @@ export async function extractLotPolygons(imagePath: string): Promise<DetectedLot
   // table, compass rose, road-profile diagrams, locator inset) — expressed
   // as fractions of the image so they scale with any sheet size. Harmless
   // to leave in place even if a given plan doesn't have all of these.
-  const exclusions = [
-    { x0: 0.27, y0: 0.085, x1: 0.40, y1: 0.15 },
-    { x0: 0.36, y0: 0.27, x1: 0.46, y1: 0.33 },
-    { x0: 0.68, y0: 0, x1: 1, y1: 0.37 },
-    { x0: 0, y0: 0.38, x1: 0.17, y1: 0.49 },
-    { x0: 0.28, y0: 0.86, x1: 1, y1: 1 },
-    { x0: 0.85, y0: 0, x1: 1, y1: 0.86 },
-  ];
   const inExclusion = (xp: number, yp: number) =>
-    exclusions.some(e => xp >= e.x0 && xp <= e.x1 && yp >= e.y0 && yp <= e.y1);
+    PLAN_SHEET_EXCLUSIONS.some(e => xp >= e.x0 && xp <= e.x1 && yp >= e.y0 && yp <= e.y1);
 
   const visited = new Uint8Array(W * H);
   const CAP = 900; // px budget — a lot cell; roads/parks/margins blow past this

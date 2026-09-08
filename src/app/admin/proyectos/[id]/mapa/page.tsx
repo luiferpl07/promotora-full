@@ -52,6 +52,8 @@ export default function AdminProyectoMapa() {
       await fetch(`/api/projects/${projectId}`, {
         method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mapImageUrl: url }),
       });
+      // strip title block/table/compass/etc. so only the actual site plan shows
+      await fetch(`/api/projects/${projectId}/map-image/clean`, { method: "POST" });
       loadProject();
     } finally {
       setUploading(false);
