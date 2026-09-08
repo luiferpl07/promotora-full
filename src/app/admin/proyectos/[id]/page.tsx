@@ -4,8 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Button, Card, CardTitle, Field, Icon, LoadingBlock, TextArea, TextInput, Select, Toggle } from "@/components/admin/AdminUI";
-import LotMapEditor, { EditableLot } from "@/components/admin/LotMapEditor";
+import { Button, Card, CardTitle, Field, Icon, LinkButton, LoadingBlock, TextArea, TextInput, Select, Toggle } from "@/components/admin/AdminUI";
 
 interface ProjectImage {
   id: string;
@@ -62,7 +61,6 @@ export default function AdminProyectoEditor() {
     nombre: "", slug: "", descripcion: "", estado: "activo", publicado: true, orden: 1
   });
   const [images, setImages] = useState<ProjectImage[]>([]);
-  const [lots, setLots] = useState<EditableLot[]>([]);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -88,10 +86,6 @@ export default function AdminProyectoEditor() {
           setAmenidadesList(normalizeAmenidades(data.amenidades));
         })
         .finally(() => setLoading(false));
-      fetch(`/api/projects/${params.id}/lots`)
-        .then(r => r.json())
-        .then((data: EditableLot[]) => { if (Array.isArray(data)) setLots(data); })
-        .catch(console.error);
     }
   }, [params.id, isNew]);
 
@@ -424,11 +418,14 @@ export default function AdminProyectoEditor() {
         </Card>
       )}
 
-      {/* Lotes Interactivos */}
-      {!isNew && masterplanImage && (
+      {/* Mapa Interactivo (ubicación real + lotes) */}
+      {!isNew && (
         <Card className="p-6">
-          <CardTitle hint="(Mapa interactivo de lotes que se muestra sobre el Plano Maestro en la página del proyecto)">Lotes Interactivos</CardTitle>
-          <LotMapEditor projectId={form.id!} imageUrl={masterplanImage.url} lots={lots} onLotsChange={setLots} />
+          <CardTitle hint="(Ubica el plano sobre el mapa satelital real y marca cada lote con su estado)">Mapa Interactivo</CardTitle>
+          <p className="text-sm text-[var(--color-pf-navy)]/50 mb-4">Calibra la posición real del proyecto sobre un mapa satelital y ubica cada lote con su estado (disponible/reservado/vendido).</p>
+          <LinkButton href={`/admin/proyectos/${form.id}/mapa`} variant="outline">
+            <Icon name="external" className="w-4 h-4" /> Abrir Editor de Mapa
+          </LinkButton>
         </Card>
       )}
 
