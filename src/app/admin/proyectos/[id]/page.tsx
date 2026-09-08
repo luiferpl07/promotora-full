@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Button, Card, CardTitle, Field, Icon, LoadingBlock, TextArea, TextInput, Select, Toggle } from "@/components/admin/AdminUI";
+import LotMapEditor, { EditableLot } from "@/components/admin/LotMapEditor";
 
 interface ProjectImage {
   id: string;
@@ -61,6 +62,7 @@ export default function AdminProyectoEditor() {
     nombre: "", slug: "", descripcion: "", estado: "activo", publicado: true, orden: 1
   });
   const [images, setImages] = useState<ProjectImage[]>([]);
+  const [lots, setLots] = useState<EditableLot[]>([]);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -86,6 +88,10 @@ export default function AdminProyectoEditor() {
           setAmenidadesList(normalizeAmenidades(data.amenidades));
         })
         .finally(() => setLoading(false));
+      fetch(`/api/projects/${params.id}/lots`)
+        .then(r => r.json())
+        .then((data: EditableLot[]) => { if (Array.isArray(data)) setLots(data); })
+        .catch(console.error);
     }
   }, [params.id, isNew]);
 
@@ -415,6 +421,14 @@ export default function AdminProyectoEditor() {
               <p className="text-sm text-[var(--color-pf-navy)]/50">Sube el plano maestro o de distribución de lotes del proyecto (imagen o escaneo del plano).</p>
             </div>
           </div>
+        </Card>
+      )}
+
+      {/* Lotes Interactivos */}
+      {!isNew && masterplanImage && (
+        <Card className="p-6">
+          <CardTitle hint="(Mapa interactivo de lotes que se muestra sobre el Plano Maestro en la página del proyecto)">Lotes Interactivos</CardTitle>
+          <LotMapEditor projectId={form.id!} imageUrl={masterplanImage.url} lots={lots} onLotsChange={setLots} />
         </Card>
       )}
 

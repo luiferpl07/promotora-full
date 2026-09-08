@@ -27,6 +27,7 @@ model Project {
   orden           Int            @default(0)
   publicado       Boolean        @default(true)
   images          ProjectImage[]
+  lots            ProjectLot[]
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 }
@@ -40,6 +41,20 @@ model ProjectImage {
   orden     Int      @default(0)
   tipo      String   @default("galeria") // hero | galeria | masterplan | amenidad
   createdAt DateTime @default(now())
+}
+
+model ProjectLot {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  codigo    String
+  x         Float    // % position (0-100) over the masterplan image, left→right
+  y         Float    // % position (0-100) over the masterplan image, top→bottom
+  area      Float?
+  precio    Float?
+  estado    String   @default("disponible") // disponible | reservado | vendido
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model News {

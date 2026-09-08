@@ -10,6 +10,7 @@ import { useGSAP } from "@gsap/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import InteractiveLotMap, { MapLot } from "@/components/InteractiveLotMap";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -29,6 +30,7 @@ export default function ProjectDetail() {
   const container = useRef<HTMLDivElement>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lots, setLots] = useState<MapLot[]>([]);
 
   useEffect(() => {
     fetch(`/api/projects?slug=${params.slug}`)
@@ -42,6 +44,14 @@ export default function ProjectDetail() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [params.slug]);
+
+  useEffect(() => {
+    if (!project?.id) return;
+    fetch(`/api/projects/${project.id}/lots`)
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setLots(data); })
+      .catch(console.error);
+  }, [project?.id]);
 
   // Hero animation — runs once on mount
   useEffect(() => {
@@ -226,9 +236,13 @@ export default function ProjectDetail() {
                 Plano Maestro
               </h2>
 
-              <div className="relative w-full aspect-video md:aspect-square lg:aspect-[4/3] bg-white shadow-2xl rounded-2xl overflow-hidden border border-black/5 p-4 md:p-8">
-                <Image src={masterplan.url} alt="Plano Maestro" fill className="object-contain p-4 md:p-8" />
-              </div>
+              {lots.length > 0 ? (
+                <InteractiveLotMap imageUrl={masterplan.url} lots={lots} />
+              ) : (
+                <div className="relative w-full aspect-video md:aspect-square lg:aspect-[4/3] bg-white shadow-2xl rounded-2xl overflow-hidden border border-black/5 p-4 md:p-8">
+                  <Image src={masterplan.url} alt="Plano Maestro" fill className="object-contain p-4 md:p-8" />
+                </div>
+              )}
           </section>
         )}
 
