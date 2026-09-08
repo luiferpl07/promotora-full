@@ -10,6 +10,7 @@ import { useGSAP } from "@gsap/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import ProjectShowroom, { ShowroomLot } from "@/components/ProjectShowroom";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -22,6 +23,11 @@ interface Project {
   estado: string; logo: string | null; imgHero: string | null; ubicacionTexto: string | null;
   googleMapsUrl: string | null; amenidades: string | null; publicado: boolean;
   images: ProjectImage[];
+  mapImageUrl: string | null;
+  mapCenterLat: number | null;
+  mapCenterLng: number | null;
+  mapRotationDeg: number | null;
+  mapWidthMeters: number | null;
 }
 
 export default function ProjectDetail() {
@@ -29,6 +35,8 @@ export default function ProjectDetail() {
   const container = useRef<HTMLDivElement>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lots, setLots] = useState<ShowroomLot[]>([]);
+  const [mapAspectRatio, setMapAspectRatio] = useState<number | null>(null);
 
   useEffect(() => {
     fetch(`/api/projects?slug=${params.slug}`)
@@ -42,6 +50,21 @@ export default function ProjectDetail() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [params.slug]);
+
+  useEffect(() => {
+    if (!project?.id) return;
+    fetch(`/api/projects/${project.id}/lots`)
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setLots(data); })
+      .catch(console.error);
+  }, [project?.id]);
+
+  useEffect(() => {
+    if (!project?.mapImageUrl) return;
+    const img = new window.Image();
+    img.onload = () => setMapAspectRatio(img.naturalHeight / img.naturalWidth);
+    img.src = project.mapImageUrl;
+  }, [project?.mapImageUrl]);
 
   // Hero animation — runs once on mount
   useEffect(() => {
@@ -215,23 +238,44 @@ export default function ProjectDetail() {
           </section>
         )}
 
-        {/* 5. Plano Maestro */}
-        {masterplan && (
-          <section className="py-[clamp(100px,15vw,220px)] px-6 md:px-12 max-w-[1200px] mx-auto text-center">
+        {/* 5. Showroom Interactivo / Plano Maestro */}
+        {(() => {
+          const hasShowroom =
+            project.mapImageUrl && mapAspectRatio !== null &&
+            project.mapCenterLat != null && project.mapCenterLng != null &&
+            lots.length > 0;
+
+          if (!hasShowroom && !masterplan) return null;
+
+          return (
+            <section className={`py-[clamp(100px,15vw,220px)] px-6 md:px-12 ${hasShowroom ? "max-w-[1500px]" : "max-w-[1200px]"} mx-auto text-center`}>
               <div data-reveal className="flex justify-center items-baseline gap-[16px] text-[10px] tracking-[0.34em] uppercase text-[rgba(22,32,58,.45)] mb-[26px]">
                 <span className="text-[var(--color-pf-gold)]">Distribución</span>
                 <span>Lotes del Proyecto</span>
               </div>
               <h2 data-reveal className="font-serif font-light text-[clamp(36px,5vw,70px)] leading-[1] tracking-[-0.02em] mb-16 text-[var(--color-pf-navy)]">
-                Plano Maestro
+                {hasShowroom ? "Explora el Proyecto" : "Plano Maestro"}
               </h2>
 
-              {/* TODO (fase 2): reemplazar por el mapa interactivo real calibrado en /admin */}
-              <div className="relative w-full aspect-video md:aspect-square lg:aspect-[4/3] bg-white shadow-2xl rounded-2xl overflow-hidden border border-black/5 p-4 md:p-8">
-                <Image src={masterplan.url} alt="Plano Maestro" fill className="object-contain p-4 md:p-8" />
-              </div>
-          </section>
-        )}
+              {hasShowroom ? (
+                <ProjectShowroom
+                  imageUrl={project.mapImageUrl!}
+                  aspectRatio={mapAspectRatio!}
+                  config={{
+                    lat: project.mapCenterLat!, lng: project.mapCenterLng!,
+                    rotationDeg: project.mapRotationDeg || 0, widthMeters: project.mapWidthMeters || 500,
+                  }}
+                  lots={lots}
+                  projectName={project.nombre}
+                />
+              ) : (
+                <div className="relative w-full aspect-video md:aspect-square lg:aspect-[4/3] bg-white shadow-2xl rounded-2xl overflow-hidden border border-black/5 p-4 md:p-8">
+                  <Image src={masterplan!.url} alt="Plano Maestro" fill className="object-contain p-4 md:p-8" />
+                </div>
+              )}
+            </section>
+          );
+        })()}
 
         {/* 6. Ubicación */}
         {project.googleMapsUrl && (
