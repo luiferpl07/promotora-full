@@ -4,6 +4,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "re
 import "leaflet/dist/leaflet.css";
 import { Button, Field, TextInput } from "@/components/admin/AdminUI";
 import { lotEstadoInfo } from "@/lib/lotStatus";
+import { metersPerDegLng as sharedMetersPerDegLng } from "@/lib/geoTransform";
 
 export interface MapConfig {
   lat: number;
@@ -27,7 +28,7 @@ export interface MapAlignerHandle {
 
 const DEFAULT_CONFIG: MapConfig = { lat: 4.5709, lng: -74.2973, rotationDeg: 0, widthMeters: 500 };
 const METERS_PER_DEG_LAT = 111320;
-const metersPerDegLng = (lat: number) => 111320 * Math.cos((lat * Math.PI) / 180);
+const metersPerDegLng = sharedMetersPerDegLng;
 
 function metersToLatLng(center: { lat: number; lng: number }, eastM: number, northM: number) {
   return {
@@ -50,13 +51,22 @@ const MapAligner = forwardRef<MapAlignerHandle, {
   imageUrl: string;
   initialConfig: MapConfig | null;
   aspectRatio: number; // height / width of the source image
-  onSave: (config: MapConfig) => void;
+  onSave?: (config: MapConfig) => void;
+  showAlignHandles?: boolean;
+  showAlignControls?: boolean;
   lotMode?: boolean;
   onDrawingChange?: (pointCount: number) => void;
   onLotComplete?: (points: { lat: number; lng: number }[]) => void;
   existingLots?: ExistingLot[];
+  onLotClick?: (lotId: string) => void;
+  heightClassName?: string;
 }>(function MapAligner(
-  { imageUrl, initialConfig, aspectRatio, onSave, lotMode, onDrawingChange, onLotComplete, existingLots },
+  {
+    imageUrl, initialConfig, aspectRatio, onSave,
+    showAlignHandles = true, showAlignControls = true,
+    lotMode, onDrawingChange, onLotComplete, existingLots, onLotClick,
+    heightClassName = "h-[600px]",
+  },
   ref
 ) {
   const mapDivRef = useRef<HTMLDivElement>(null);
@@ -78,6 +88,8 @@ const MapAligner = forwardRef<MapAlignerHandle, {
   onDrawingChangeRef.current = onDrawingChange;
   const onLotCompleteRef = useRef(onLotComplete);
   onLotCompleteRef.current = onLotComplete;
+  const onLotClickRef = useRef(onLotClick);
+  onLotClickRef.current = onLotClick;
 
   const drawPointsRef = useRef<{ lat: number; lng: number }[]>([]);
   const drawLayerRef = useRef<any>(null);
@@ -116,7 +128,7 @@ const MapAligner = forwardRef<MapAlignerHandle, {
 
       if (!mapDivRef.current || mapRef.current) return;
 
-      map = L.map(mapDivRef.current, { zoomControl: true }).setView(
+      map = L.map(mapDivRef.current, { zoomControl: true, maxZoom: 23 }).setView(
         [cfgRef.current.lat, cfgRef.current.lng],
         17
       );
@@ -124,7 +136,10 @@ const MapAligner = forwardRef<MapAlignerHandle, {
 
       L.tileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        { maxZoom: 19, attribution: "Esri World Imagery" }
+        // Esri only has real imagery up to ~19; beyond that Leaflet keeps
+        // reusing/upscaling the zoom-19 tile so the admin can still zoom in
+        // further for precision instead of hitting a hard wall.
+        { maxZoom: 23, maxNativeZoom: 19, attribution: "Esri World Imagery" }
       ).addTo(map);
 
       const computeCorners = () => {
@@ -176,45 +191,47 @@ const MapAligner = forwardRef<MapAlignerHandle, {
           iconAnchor: [9, 9],
         });
 
-      const centerMarker = L.marker([cfgRef.current.lat, cfgRef.current.lng], {
-        draggable: true,
-        icon: dot("#16203A", "Mover"),
-        zIndexOffset: 1000,
-      }).addTo(map);
-      centerMarkerRef.current = centerMarker;
-      centerMarker.on("drag", (e: any) => {
-        const p = e.target.getLatLng();
-        cfgRef.current = { ...cfgRef.current, lat: p.lat, lng: p.lng };
-        recompute();
-      });
+      if (showAlignHandles) {
+        const centerMarker = L.marker([cfgRef.current.lat, cfgRef.current.lng], {
+          draggable: true,
+          icon: dot("#16203A", "Mover"),
+          zIndexOffset: 1000,
+        }).addTo(map);
+        centerMarkerRef.current = centerMarker;
+        centerMarker.on("drag", (e: any) => {
+          const p = e.target.getLatLng();
+          cfgRef.current = { ...cfgRef.current, lat: p.lat, lng: p.lng };
+          recompute();
+        });
 
-      const rotateMarker = L.marker(rotateHandlePos(), {
-        draggable: true,
-        icon: dot("#C8A23C", "Rotar"),
-        zIndexOffset: 1000,
-      }).addTo(map);
-      rotateMarkerRef.current = rotateMarker;
-      rotateMarker.on("drag", (e: any) => {
-        const p = e.target.getLatLng();
-        const { eastM, northM } = latLngToMeters(cfgRef.current, p);
-        const deg = (Math.atan2(eastM, northM) * 180) / Math.PI;
-        cfgRef.current = { ...cfgRef.current, rotationDeg: deg };
-        recompute();
-      });
+        const rotateMarker = L.marker(rotateHandlePos(), {
+          draggable: true,
+          icon: dot("#C8A23C", "Rotar"),
+          zIndexOffset: 1000,
+        }).addTo(map);
+        rotateMarkerRef.current = rotateMarker;
+        rotateMarker.on("drag", (e: any) => {
+          const p = e.target.getLatLng();
+          const { eastM, northM } = latLngToMeters(cfgRef.current, p);
+          const deg = (Math.atan2(eastM, northM) * 180) / Math.PI;
+          cfgRef.current = { ...cfgRef.current, rotationDeg: deg };
+          recompute();
+        });
 
-      const scaleMarker = L.marker(scaleHandlePos(), {
-        draggable: true,
-        icon: dot("#1F4E9C", "Escalar"),
-        zIndexOffset: 1000,
-      }).addTo(map);
-      scaleMarkerRef.current = scaleMarker;
-      scaleMarker.on("drag", (e: any) => {
-        const p = e.target.getLatLng();
-        const { eastM, northM } = latLngToMeters(cfgRef.current, p);
-        const dist = Math.sqrt(eastM * eastM + northM * northM);
-        cfgRef.current = { ...cfgRef.current, widthMeters: Math.max(20, dist * 2) };
-        recompute();
-      });
+        const scaleMarker = L.marker(scaleHandlePos(), {
+          draggable: true,
+          icon: dot("#1F4E9C", "Escalar"),
+          zIndexOffset: 1000,
+        }).addTo(map);
+        scaleMarkerRef.current = scaleMarker;
+        scaleMarker.on("drag", (e: any) => {
+          const p = e.target.getLatLng();
+          const { eastM, northM } = latLngToMeters(cfgRef.current, p);
+          const dist = Math.sqrt(eastM * eastM + northM * northM);
+          cfgRef.current = { ...cfgRef.current, widthMeters: Math.max(20, dist * 2) };
+          recompute();
+        });
+      }
 
       // in-progress lot polygon while drawing
       const drawLayer = L.polygon([], {
@@ -237,7 +254,7 @@ const MapAligner = forwardRef<MapAlignerHandle, {
 
     return () => cleanup();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [imageUrl, aspectRatio]);
+  }, [imageUrl, aspectRatio, showAlignHandles]);
 
   // keep existing lots rendered as colored polygons
   useEffect(() => {
@@ -249,9 +266,15 @@ const MapAligner = forwardRef<MapAlignerHandle, {
       try {
         const pts = JSON.parse(lot.geometry) as { lat: number; lng: number }[];
         const info = lotEstadoInfo(lot.estado);
-        L.polygon(pts.map(p => [p.lat, p.lng]), {
+        const poly = L.polygon(pts.map(p => [p.lat, p.lng]), {
           color: info.color, weight: 2, fillColor: info.color, fillOpacity: 0.45,
         }).bindTooltip(lot.codigo).addTo(layer);
+        if (onLotClickRef.current) {
+          poly.on("click", (e: any) => {
+            L.DomEvent.stopPropagation(e);
+            onLotClickRef.current?.(lot.id);
+          });
+        }
       } catch {}
     });
   }, [ready, existingLots]);
@@ -272,37 +295,45 @@ const MapAligner = forwardRef<MapAlignerHandle, {
 
   const handleSave = () => {
     setSaving(true);
-    onSave(cfgRef.current);
+    onSave?.(cfgRef.current);
     setSaving(false);
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-3 flex-wrap items-end">
-        <div className="flex-1 min-w-[240px]">
-          <Field label="Buscar ubicación">
-            <TextInput
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              placeholder="Ej: Chinú, Córdoba, Colombia"
-            />
-          </Field>
-        </div>
-        <Button variant="outline" onClick={handleSearch} disabled={searching}>
-          {searching ? "Buscando..." : "Buscar"}
-        </Button>
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? "Guardando..." : "Guardar posición"}
-        </Button>
-      </div>
-      <p className="text-[11px] text-[var(--color-pf-navy)]/40">
-        <span className="inline-flex items-center gap-1.5 mr-4"><span className="w-2.5 h-2.5 rounded-full bg-[#16203A] inline-block" /> Mover</span>
-        <span className="inline-flex items-center gap-1.5 mr-4"><span className="w-2.5 h-2.5 rounded-full bg-[#C8A23C] inline-block" /> Rotar</span>
-        <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#1F4E9C] inline-block" /> Escalar</span>
-        {lotMode && <span className="ml-4 text-[var(--color-pf-gold)]">Modo lotes: clic para marcar cada esquina del lote</span>}
-      </p>
-      <div ref={mapDivRef} className="w-full h-[600px] rounded-xl overflow-hidden border border-[var(--color-pf-navy)]/15" />
+      {showAlignControls && (
+        <>
+          <div className="flex gap-3 flex-wrap items-end">
+            <div className="flex-1 min-w-[240px]">
+              <Field label="Buscar ubicación">
+                <TextInput
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  placeholder="Ej: Chinú, Córdoba, Colombia"
+                />
+              </Field>
+            </div>
+            <Button variant="outline" onClick={handleSearch} disabled={searching}>
+              {searching ? "Buscando..." : "Buscar"}
+            </Button>
+            {onSave && (
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? "Guardando..." : "Guardar posición"}
+              </Button>
+            )}
+          </div>
+          {showAlignHandles && (
+            <p className="text-[11px] text-[var(--color-pf-navy)]/40">
+              <span className="inline-flex items-center gap-1.5 mr-4"><span className="w-2.5 h-2.5 rounded-full bg-[#16203A] inline-block" /> Mover</span>
+              <span className="inline-flex items-center gap-1.5 mr-4"><span className="w-2.5 h-2.5 rounded-full bg-[#C8A23C] inline-block" /> Rotar</span>
+              <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#1F4E9C] inline-block" /> Escalar</span>
+            </p>
+          )}
+        </>
+      )}
+      {lotMode && <p className="text-[11px] text-[var(--color-pf-gold)]">Modo lotes: clic para marcar cada esquina del lote</p>}
+      <div ref={mapDivRef} className={`w-full ${heightClassName} rounded-xl overflow-hidden border border-[var(--color-pf-navy)]/15`} />
     </div>
   );
 });
