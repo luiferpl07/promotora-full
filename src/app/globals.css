@@ -140,3 +140,24 @@ html.lenis, html.lenis body {
 .sway-animation-alt {
   animation: sway-alt 7s ease-in-out infinite;
 }
+
+/* ── Hero: animated scroll indicator line ─────────────────────────── */
+@keyframes heroScrollLine {
+  0%   { transform: translateY(-100%); opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+
+/* ── Reduced motion: disable non-essential animations ─────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .sway-animation,
+  .sway-animation-alt {
+    animation: none;
+  }
+  [style*="heroScrollLine"] {
+    animation: none;
+    opacity: 0.5;
+  }
+}
+

@@ -289,35 +289,43 @@ export default function Home() {
 
             <CloudsDrift className="z-0 opacity-90" />
 
-            {/* Left Palm Tree */}
-            <div 
+            {/* Left Palm Tree — reduced size on mobile so it frames, not covers */}
+            <div
               ref={palmLeftRef}
-              className="absolute top-[-5%] left-[-5%] w-[80vw] md:w-[42vw] h-[70vh] md:h-[130vh] opacity-60 md:opacity-100 z-0 origin-bottom-left mix-blend-multiply pointer-events-none"
+              className="absolute top-[-2%] left-[-8%] w-[55vw] md:w-[42vw] h-[52vh] md:h-[130vh] opacity-55 md:opacity-100 z-0 origin-bottom-left mix-blend-multiply pointer-events-none"
             >
               <div className="w-full h-full relative sway-animation origin-bottom-left">
                 <Image src="/assets/palms/palm_left_v2.png" alt="Palmera" fill className="object-contain object-top object-left" />
               </div>
             </div>
 
-            {/* Right Palm Tree */}
-            <div 
+            {/* Right Palm Tree — smaller on mobile, positioned lower */}
+            <div
               ref={palmRightRef}
-              className="absolute bottom-[-10%] right-[-5%] w-[80vw] md:w-[45vw] h-[50vh] md:h-[70vh] opacity-50 md:opacity-90 z-0 origin-bottom-right pointer-events-none"
+              className="absolute bottom-[-5%] right-[-8%] w-[50vw] md:w-[45vw] h-[35vh] md:h-[70vh] opacity-45 md:opacity-90 z-0 origin-bottom-right pointer-events-none"
             >
               <div className="w-full h-full relative sway-animation-alt origin-bottom-right">
                 <Image src="/assets/palms/palm_bottom_right.png" alt="Palmera" fill className="object-contain object-bottom object-right" />
               </div>
             </div>
 
-            <div className="relative z-10 flex flex-col items-center px-6 mt-[-10vh]">
-              <h2 className="font-serif text-[clamp(40px,12vw,200px)] uppercase tracking-tight leading-[0.8] font-light text-[var(--color-pf-navy)] drop-shadow-2xl opacity-90 text-center">
+            {/* Text block — tighter on mobile */}
+            <div className="relative z-10 flex flex-col items-center px-6 mt-0 md:mt-[-10vh]">
+              {/* Eyebrow line — mobile only */}
+              <div className="flex items-center gap-3 mb-4 md:hidden">
+                <div className="w-6 h-[1px] bg-[var(--color-pf-navy)]/40" />
+                <span className="font-mono text-[8px] tracking-[0.4em] uppercase text-[var(--color-pf-navy)]/60">Lotes Campestres</span>
+                <div className="w-6 h-[1px] bg-[var(--color-pf-navy)]/40" />
+              </div>
+
+              <h2 className="font-serif text-[clamp(34px,9vw,200px)] uppercase tracking-tight leading-[0.85] font-light text-[var(--color-pf-navy)] drop-shadow-2xl opacity-90 text-center">
                 Proyectos
               </h2>
-              <h2 className="font-script text-[clamp(55px,15vw,250px)] leading-[0.5] text-[var(--color-pf-gold)] mt-[-15px] md:mt-[-40px] drop-shadow-2xl text-center">
+              <h2 className="font-script text-[clamp(46px,11vw,250px)] leading-[0.6] text-[var(--color-pf-gold)] mt-[-8px] md:mt-[-40px] drop-shadow-2xl text-center">
                 Destacados
               </h2>
-              
-              <div className="mt-16 max-w-[450px] text-center text-[var(--color-pf-navy)] text-[10px] md:text-[11px] uppercase tracking-[0.25em] leading-relaxed font-mono opacity-70">
+
+              <div className="mt-8 md:mt-16 max-w-[340px] md:max-w-[450px] text-center text-[var(--color-pf-navy)] text-[9px] md:text-[11px] uppercase tracking-[0.2em] md:tracking-[0.25em] leading-relaxed font-mono opacity-60 px-4 md:px-0">
                 Inspirado en la naturaleza y diseñado para tu bienestar. Lotes campestres exclusivos que combinan privacidad y conexión total con el entorno.
               </div>
             </div>
@@ -325,6 +333,7 @@ export default function Home() {
           {/* Gradient fade at bottom to smooth transition to next section */}
           <div className="absolute bottom-0 left-0 w-full h-64 pointer-events-none z-20" style={{ background: 'linear-gradient(to bottom, transparent, var(--color-pf-bg))' }} />
         </section>
+
 
         {/* 3. Horizontal Scroll Projects Grid */}
         <section ref={horizontalSectionRef} data-section-index="3" data-bg-color="var(--color-pf-bg)" className="bg-[var(--color-pf-bg)] text-[var(--color-pf-navy)] overflow-hidden h-screen">

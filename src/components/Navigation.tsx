@@ -11,6 +11,7 @@ interface NavigationProps {
 
 export default function Navigation({ customLogo }: NavigationProps = {}) {
   const [scrolled, setScrolled] = useState(false);
+  const [midScroll, setMidScroll] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [config, setConfig] = useState<Record<string, string>>({});
   const pathname = usePathname();
@@ -31,7 +32,12 @@ export default function Navigation({ customLogo }: NavigationProps = {}) {
     // Transparent for the entire hero (one full viewport height); solid
     // only once it has scrolled completely out of view — no early cutoff.
     const onScroll = () => {
-      setScrolled(window.scrollY >= window.innerHeight);
+      const vh = window.innerHeight;
+      const y = window.scrollY;
+      setScrolled(y >= vh);
+      // midScroll: subtle blur starts at ~8% of hero height to create
+      // a gentle integration feel without a hard cut
+      setMidScroll(y > vh * 0.08 && y < vh);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -54,9 +60,11 @@ export default function Navigation({ customLogo }: NavigationProps = {}) {
     <>
       <div className="fixed top-0 left-0 right-0 z-[90] flex justify-center w-full pointer-events-none">
         <nav
-          className={`pointer-events-auto w-full items-center transition-all duration-500 ease-in-out px-5 md:px-12 py-3 md:py-5 ${
+          className={`pointer-events-auto w-full items-center transition-all duration-700 ease-in-out px-5 md:px-12 py-3 md:py-5 ${
             scrolled
               ? "border-b border-[#cba76b]/40 shadow-sm bg-[rgba(247,244,237,.95)] backdrop-blur-md"
+              : midScroll
+              ? "border-b border-white/10 shadow-none bg-[rgba(22,32,58,0.18)] backdrop-blur-sm"
               : "border-b border-transparent shadow-none bg-transparent"
           }`}
         >
