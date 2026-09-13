@@ -2,18 +2,21 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import "leaflet/dist/leaflet.css";
 import { LOT_ESTADOS, lotEstadoInfo } from "@/lib/lotStatus";
-import { imageFractionToLatLng, type MapConfig } from "@/lib/geoTransform";
+import { parseLotGeometry, polygonPoints } from "@/lib/lotGeometry";
 
 export interface ShowroomLot {
   id: string;
   codigo: string;
-  geometry: string; // JSON array of {lat,lng}
+  geometry: string; // JSON array of [x,y] in percent of the plano image
   area: number | null;
   precio: number | null;
   estado: string;
 }
+
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 8;
+const DRAG_THRESHOLD_PX = 5;
 
 function formatPrecio(precio: number) {
   return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(precio);
@@ -21,22 +24,23 @@ function formatPrecio(precio: number) {
 
 export default function ProjectShowroom({
   imageUrl,
-  config,
   aspectRatio,
   lots,
   projectName,
 }: {
   imageUrl: string;
-  config: MapConfig;
-  aspectRatio: number;
+  aspectRatio: number; // height / width
   lots: ShowroomLot[];
   projectName: string;
 }) {
-  const mapDivRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
-  const fitBoundsRef = useRef<any>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
   const [selected, setSelected] = useState<ShowroomLot | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
   const [whatsapp, setWhatsapp] = useState<string | null>(null);
+
+  const dragRef = useRef({ active: false, startX: 0, startY: 0, originX: 0, originY: 0, moved: 0 });
 
   useEffect(() => {
     fetch("/api/site-config").then(r => r.json()).then(cfg => {
@@ -44,111 +48,66 @@ export default function ProjectShowroom({
     }).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    let map: any;
-    let cleanup = () => {};
+  // Keeps the plano from being dragged off screen: at zoom z the image can
+  // travel at most half of its overflow in each direction.
+  const clampPan = (next: { x: number; y: number }, z: number) => {
+    const box = viewportRef.current?.getBoundingClientRect();
+    if (!box) return next;
+    const maxX = (box.width * (z - 1)) / 2;
+    const maxY = (box.height * (z - 1)) / 2;
+    return {
+      x: Math.max(-maxX, Math.min(maxX, next.x)),
+      y: Math.max(-maxY, Math.min(maxY, next.y)),
+    };
+  };
 
-    (async () => {
-      const L = (await import("leaflet")).default;
-      const { registerRotatedImageOverlay } = await import("@/lib/leafletRotatedOverlay");
-      registerRotatedImageOverlay(L);
+  const applyZoom = (nextZoom: number) => {
+    const z = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, nextZoom));
+    setZoom(z);
+    setPan(p => clampPan(p, z));
+  };
 
-      if (!mapDivRef.current || mapRef.current) return;
+  const resetView = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
 
-      const corners4 = [
-        imageFractionToLatLng(0, 0, aspectRatio, config),
-        imageFractionToLatLng(1, 0, aspectRatio, config),
-        imageFractionToLatLng(1, 1, aspectRatio, config),
-        imageFractionToLatLng(0, 1, aspectRatio, config),
-      ];
-      const lats = corners4.map(c => c.lat), lngs = corners4.map(c => c.lng);
-      const planBounds = L.latLngBounds(
-        [Math.min(...lats), Math.min(...lngs)],
-        [Math.max(...lats), Math.max(...lngs)]
-      );
-      const padded = planBounds.pad(0.35);
+  const onPointerDown = (e: React.PointerEvent) => {
+    dragRef.current = {
+      active: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      originX: pan.x,
+      originY: pan.y,
+      moved: 0,
+    };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
 
-      map = L.map(mapDivRef.current, {
-        zoomControl: false,
-        maxBounds: padded,
-        maxBoundsViscosity: 1.0,
-      });
-      mapRef.current = map;
-      map.fitBounds(planBounds.pad(0.06));
-      fitBoundsRef.current = () => map.flyToBounds(planBounds.pad(0.06), { duration: 0.6 });
+  const onPointerMove = (e: React.PointerEvent) => {
+    const d = dragRef.current;
+    if (!d.active) return;
+    const dx = e.clientX - d.startX;
+    const dy = e.clientY - d.startY;
+    d.moved = Math.max(d.moved, Math.abs(dx) + Math.abs(dy));
+    setPan(clampPan({ x: d.originX + dx, y: d.originY + dy }, zoom));
+  };
 
-      const fitZoom = map.getZoom();
-      map.setMinZoom(Math.max(1, fitZoom - 2));
-      map.setMaxZoom(22);
+  const onPointerUp = (e: React.PointerEvent) => {
+    dragRef.current.active = false;
+    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+  };
 
-      L.control.zoom({ position: "bottomright" }).addTo(map);
+  const onWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    applyZoom(zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15));
+  };
 
-      L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        { maxZoom: 22, maxNativeZoom: 19, attribution: "Esri" }
-      ).addTo(map);
-
-      const corners = {
-        topleft: imageFractionToLatLng(0, 0, aspectRatio, config),
-        topright: imageFractionToLatLng(1, 0, aspectRatio, config),
-        bottomleft: imageFractionToLatLng(0, 1, aspectRatio, config),
-      };
-      (L as any).imageOverlay
-        .rotated(imageUrl, corners.topleft, corners.topright, corners.bottomleft, {
-          opacity: 0.92, interactive: false,
-        })
-        .addTo(map);
-
-      const lotsLayer = L.layerGroup().addTo(map);
-      const polyByLot = new Map<string, any>();
-      const selectedIdRef = { current: null as string | null };
-
-      function selectLot(id: string | null) {
-        polyByLot.forEach((p, pid) => {
-          if (pid === id) {
-            p.setStyle({ weight: 3, fillOpacity: 0.7 });
-            p.bringToFront();
-          } else {
-            p.setStyle({ weight: 1.5, fillOpacity: 0.45 });
-          }
-        });
-        selectedIdRef.current = id;
-        setSelected(id ? lots.find(l => l.id === id) || null : null);
-      }
-
-      lots.forEach(lot => {
-        try {
-          const pts = JSON.parse(lot.geometry) as { lat: number; lng: number }[];
-          const info = lotEstadoInfo(lot.estado);
-          const poly = L.polygon(pts.map(p => [p.lat, p.lng]), {
-            color: info.color, weight: 1.5, fillColor: info.color, fillOpacity: 0.45,
-          }).addTo(lotsLayer);
-
-          poly.bindTooltip(
-            `<div style="font-family:inherit"><strong>${lot.codigo}</strong>${lot.area ? `<br/>${lot.area} m²` : ""}<br/>${info.label}</div>`,
-            { sticky: true, direction: "top", className: "pf-lot-tooltip" }
-          );
-
-          poly.on("mouseover", () => { if (selectedIdRef.current !== lot.id) poly.setStyle({ weight: 3, fillOpacity: 0.65 }); });
-          poly.on("mouseout", () => {
-            if (selectedIdRef.current !== lot.id) poly.setStyle({ weight: 1.5, fillOpacity: 0.45 });
-          });
-          poly.on("click", (e: any) => {
-            L.DomEvent.stopPropagation(e);
-            selectLot(lot.id);
-          });
-          polyByLot.set(lot.id, poly);
-        } catch {}
-      });
-
-      map.on("click", () => selectLot(null));
-
-      cleanup = () => map.remove();
-    })();
-
-    return () => cleanup();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [imageUrl, aspectRatio]);
+  // A click that followed a real drag is a pan, not a lot selection.
+  const handleLotClick = (lot: ShowroomLot) => {
+    if (dragRef.current.moved > DRAG_THRESHOLD_PX) return;
+    setSelected(lot);
+  };
 
   const whatsappHref = (() => {
     if (!whatsapp || !selected) return null;
@@ -158,19 +117,80 @@ export default function ProjectShowroom({
   })();
 
   return (
-    <div className="relative w-full h-[75vh] min-h-[480px] rounded-2xl overflow-hidden border border-black/5 shadow-2xl bg-white">
-      <div ref={mapDivRef} className="absolute inset-0" />
+    <div className="relative w-full rounded-2xl overflow-hidden border border-black/5 shadow-2xl bg-white">
+      <div
+        ref={viewportRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onWheel={onWheel}
+        className="relative w-full overflow-hidden touch-none"
+        style={{ paddingBottom: `${aspectRatio * 100}%`, cursor: zoom > 1 ? "grab" : "default" }}
+      >
+        <div
+          className="absolute inset-0 origin-center"
+          style={{
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            transition: dragRef.current.active ? "none" : "transform 0.25s ease-out",
+          }}
+        >
+          <img src={imageUrl} alt={`Plano de ${projectName}`} className="absolute inset-0 w-full h-full object-fill select-none" draggable={false} />
+
+          <svg
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            className="absolute inset-0 w-full h-full"
+          >
+            {lots.map(lot => {
+              const pts = parseLotGeometry(lot.geometry);
+              if (pts.length < 3) return null;
+              const info = lotEstadoInfo(lot.estado);
+              const isActive = selected?.id === lot.id || hovered === lot.id;
+              return (
+                <polygon
+                  key={lot.id}
+                  points={polygonPoints(pts)}
+                  fill={info.color}
+                  fillOpacity={isActive ? 0.72 : 0.4}
+                  stroke={info.color}
+                  strokeWidth={isActive ? 0.35 : 0.15}
+                  vectorEffect="non-scaling-stroke"
+                  className="cursor-pointer transition-[fill-opacity] duration-150"
+                  onMouseEnter={() => setHovered(lot.id)}
+                  onMouseLeave={() => setHovered(null)}
+                  onClick={() => handleLotClick(lot)}
+                />
+              );
+            })}
+          </svg>
+        </div>
+      </div>
 
       {/* Vista general */}
       <button
-        onClick={() => fitBoundsRef.current?.()}
-        className="absolute top-4 left-4 z-[500] bg-white/95 backdrop-blur px-4 py-2.5 rounded-full text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-pf-navy)] shadow-lg hover:bg-white transition-colors"
+        onClick={resetView}
+        className="absolute top-4 left-4 bg-white/95 backdrop-blur px-4 py-2.5 rounded-full text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-pf-navy)] shadow-lg hover:bg-white transition-colors"
       >
         Vista General
       </button>
 
+      {/* Zoom */}
+      <div className="absolute bottom-4 left-4 flex flex-col gap-1.5">
+        <button
+          onClick={() => applyZoom(zoom * 1.4)}
+          aria-label="Acercar"
+          className="w-9 h-9 rounded-full bg-white/95 backdrop-blur shadow-lg text-[var(--color-pf-navy)] text-lg leading-none hover:bg-white transition-colors"
+        >+</button>
+        <button
+          onClick={() => applyZoom(zoom / 1.4)}
+          aria-label="Alejar"
+          className="w-9 h-9 rounded-full bg-white/95 backdrop-blur shadow-lg text-[var(--color-pf-navy)] text-lg leading-none hover:bg-white transition-colors"
+        >−</button>
+      </div>
+
       {/* Leyenda */}
-      <div className="absolute top-4 right-4 z-[500] bg-white/95 backdrop-blur rounded-xl shadow-lg px-4 py-3 flex flex-col gap-1.5">
+      <div className="absolute top-4 right-4 bg-white/95 backdrop-blur rounded-xl shadow-lg px-4 py-3 flex flex-col gap-1.5">
         {LOT_ESTADOS.map(e => (
           <div key={e.value} className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-[var(--color-pf-navy)]/70">
             <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: e.color }} />
@@ -181,7 +201,7 @@ export default function ProjectShowroom({
 
       {/* Panel del lote seleccionado */}
       {selected && (
-        <div className="absolute bottom-0 left-0 right-0 md:bottom-4 md:right-4 md:left-auto z-[500] w-full md:w-[340px] bg-white md:rounded-2xl rounded-t-2xl shadow-2xl p-6">
+        <div className="absolute bottom-0 left-0 right-0 md:bottom-4 md:right-4 md:left-auto w-full md:w-[340px] bg-white md:rounded-2xl rounded-t-2xl shadow-2xl p-6 text-left">
           <button
             onClick={() => setSelected(null)}
             aria-label="Cerrar"

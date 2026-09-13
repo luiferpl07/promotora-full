@@ -31,12 +31,8 @@ model Project {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  // Calibración del plano sobre el mapa satelital real (editor de alineación)
-  mapImageUrl     String?
-  mapCenterLat    Float?
-  mapCenterLng    Float?
-  mapRotationDeg  Float?
-  mapWidthMeters  Float?
+  // Imagen del plano del loteo sobre la que se trazan los lotes
+  planoUrl        String?
 }
 
 model ProjectImage {
@@ -55,7 +51,9 @@ model ProjectLot {
   projectId String
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   codigo    String
-  geometry  String   // JSON array of {lat,lng} — the lot's real polygon corners
+  // JSON array of [x,y] corners in percent (0-100) of the plano image, so the
+  // overlay scales with the image on any screen without recalculating.
+  geometry  String
   area      Float?
   precio    Float?
   estado    String   @default("disponible") // disponible | reservado | vendido

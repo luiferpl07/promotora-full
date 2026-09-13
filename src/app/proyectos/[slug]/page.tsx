@@ -23,11 +23,7 @@ interface Project {
   estado: string; logo: string | null; imgHero: string | null; ubicacionTexto: string | null;
   googleMapsUrl: string | null; amenidades: string | null; publicado: boolean;
   images: ProjectImage[];
-  mapImageUrl: string | null;
-  mapCenterLat: number | null;
-  mapCenterLng: number | null;
-  mapRotationDeg: number | null;
-  mapWidthMeters: number | null;
+  planoUrl: string | null;
 }
 
 export default function ProjectDetail() {
@@ -60,11 +56,11 @@ export default function ProjectDetail() {
   }, [project?.id]);
 
   useEffect(() => {
-    if (!project?.mapImageUrl) return;
+    if (!project?.planoUrl) return;
     const img = new window.Image();
     img.onload = () => setMapAspectRatio(img.naturalHeight / img.naturalWidth);
-    img.src = project.mapImageUrl;
-  }, [project?.mapImageUrl]);
+    img.src = project.planoUrl;
+  }, [project?.planoUrl]);
 
   // Hero animation — runs once on mount
   useEffect(() => {
@@ -241,9 +237,7 @@ export default function ProjectDetail() {
         {/* 5. Showroom Interactivo / Plano Maestro */}
         {(() => {
           const hasShowroom =
-            project.mapImageUrl && mapAspectRatio !== null &&
-            project.mapCenterLat != null && project.mapCenterLng != null &&
-            lots.length > 0;
+            project.planoUrl && mapAspectRatio !== null && lots.length > 0;
 
           if (!hasShowroom && !masterplan) return null;
 
@@ -259,12 +253,8 @@ export default function ProjectDetail() {
 
               {hasShowroom ? (
                 <ProjectShowroom
-                  imageUrl={project.mapImageUrl!}
+                  imageUrl={project.planoUrl!}
                   aspectRatio={mapAspectRatio!}
-                  config={{
-                    lat: project.mapCenterLat!, lng: project.mapCenterLng!,
-                    rotationDeg: project.mapRotationDeg || 0, widthMeters: project.mapWidthMeters || 500,
-                  }}
                   lots={lots}
                   projectName={project.nombre}
                 />
