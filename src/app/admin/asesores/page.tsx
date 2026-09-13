@@ -20,7 +20,11 @@ export default function AdminAsesores() {
   const [editing, setEditing] = useState<Partial<Advisor> | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const load = () => fetch("/api/advisors").then(r => r.json()).then(setAdvisors).finally(() => setLoading(false));
+  const load = () => fetch("/api/advisors")
+    .then(r => r.json())
+    .then(d => setAdvisors(Array.isArray(d) ? d : []))
+    .catch(() => setAdvisors([]))
+    .finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
 
   const handleDelete = async (id: string) => {

@@ -21,7 +21,11 @@ export default function AdminNovedadesList() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/news").then(r => r.json()).then(setItems).finally(() => setLoading(false));
+    fetch("/api/news")
+      .then(r => r.json())
+      .then(d => setItems(Array.isArray(d) ? d : []))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
   }, []);
 
   const togglePublicado = async (n: NewsItem) => {

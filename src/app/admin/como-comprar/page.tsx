@@ -17,7 +17,11 @@ export default function AdminComoComprar() {
   const [editing, setEditing] = useState<Partial<Step> | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const load = () => fetch("/api/como-comprar").then(r => r.json()).then(setSteps).finally(() => setLoading(false));
+  const load = () => fetch("/api/como-comprar")
+    .then(r => r.json())
+    .then(d => setSteps(Array.isArray(d) ? d : []))
+    .catch(() => setSteps([]))
+    .finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
 
   const handleDelete = async (id: string) => {

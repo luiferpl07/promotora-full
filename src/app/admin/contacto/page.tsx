@@ -28,7 +28,11 @@ export default function AdminContacto() {
   const [filterProyecto, setFilterProyecto] = useState("todos");
 
   useEffect(() => {
-    fetch("/api/contact-requests").then(r => r.json()).then(setRequests).finally(() => setLoading(false));
+    fetch("/api/contact-requests")
+      .then(r => r.json())
+      .then(d => setRequests(Array.isArray(d) ? d : []))
+      .catch(() => setRequests([]))
+      .finally(() => setLoading(false));
   }, []);
 
   const updateEstado = async (req: ContactRequest, estado: string) => {

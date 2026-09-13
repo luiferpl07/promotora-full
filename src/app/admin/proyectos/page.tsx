@@ -27,8 +27,24 @@ const estadoColor: Record<string, "green" | "amber" | "red" | "gray"> = {
 export default function AdminProyectos() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const load = () => fetch("/api/projects").then(r => r.json()).then(setProjects).finally(() => setLoading(false));
+  // La API responde un objeto de error cuando la base no está disponible, así
+  // que hay que comprobar la forma antes de tratarlo como listado.
+  const load = () =>
+    fetch("/api/projects")
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setProjects(data);
+          setError(null);
+        } else {
+          setError("No se pudieron cargar los proyectos. Revisa la conexión a la base de datos.");
+        }
+      })
+      .catch(() => setError("No se pudieron cargar los proyectos. Revisa la conexión a la base de datos."))
+      .finally(() => setLoading(false));
+
   useEffect(() => { load(); }, []);
 
   const togglePublicado = async (p: Project) => {
@@ -57,6 +73,10 @@ export default function AdminProyectos() {
 
       {loading ? (
         <TableShell><tbody><tr><td><LoadingBlock /></td></tr></tbody></TableShell>
+      ) : error ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-6 py-5 text-sm text-red-700">
+          {error}
+        </div>
       ) : (
         <TableShell>
           <Thead cols={["Proyecto", "Lotes", "Área Desde", "Estado", "Publicado", "Acciones"]} />
