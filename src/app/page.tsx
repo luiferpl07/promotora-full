@@ -32,9 +32,31 @@ export default function Home() {
       if (Array.isArray(news)) setNovedades(news.filter((n: any) => n.publicado).slice(0, 3));
     }).catch(console.error);
   }, []);
+
+  // Keep the curved-text SVG's coordinate space pixel-matched to the viewport
+  // so the arc never stretches or skews on resize.
+  useEffect(() => {
+    const syncViewport = () => {
+      viewportRef.current = { w: window.innerWidth, h: window.innerHeight };
+      if (curvedTextSvgRef.current) {
+        curvedTextSvgRef.current.setAttribute(
+          "viewBox",
+          `0 0 ${window.innerWidth} ${window.innerHeight}`
+        );
+      }
+    };
+    syncViewport();
+    window.addEventListener("resize", syncViewport);
+    return () => window.removeEventListener("resize", syncViewport);
+  }, []);
+
   const archSectionRef = useRef<HTMLDivElement>(null);
   const archMaskRef = useRef<HTMLDivElement>(null);
   const curvedTextRef = useRef<HTMLDivElement>(null);
+  const curvedTextSvgRef = useRef<SVGSVGElement>(null);
+  const curvedTextPathRef = useRef<SVGPathElement>(null);
+  const curvedTextElRef = useRef<SVGTextElement>(null);
+  const viewportRef = useRef({ w: 0, h: 0 });
   const horizontalScrollRef = useRef<HTMLDivElement>(null);
   const locationSectionRef = useRef<HTMLDivElement>(null);
   const locationTextRef = useRef<HTMLDivElement>(null);
@@ -69,7 +91,81 @@ export default function Home() {
       });
     });
 
-    // 1. Smooth Arch Reveal (Pinned Clip-Path)
+    // 1. Curved "PROMOTORAS FULL" title.
+    // It lives on a fixed layer so it can already be on screen while the hero
+    // is still scrolling away (entry is driven by the hero), and then scales
+    // up while wrapping tighter around its arc as the dome rises beneath it
+    // (growth is driven by the pinned arch), glowing gold before it burns out.
+    const curvedState = { percent: 5, entry: 0 };
+
+    const renderCurvedTitle = () => {
+      const path = curvedTextPathRef.current;
+      const text = curvedTextElRef.current;
+      if (!path || !text) return;
+
+      const w = viewportRef.current.w || window.innerWidth;
+      const h = viewportRef.current.h || window.innerHeight;
+
+      // The journey finishes before the dome (5%→150%) covers the screen.
+      const t = gsap.utils.clamp(0, 1, (curvedState.percent - 5) / 90);
+
+      // Centre it in whatever part of this section is actually on screen, so
+      // it reads as centred while the section is still sliding up over the
+      // hero, and settles at the true viewport centre once it pins. Coords are
+      // section-local (the SVG spans the section), hence subtracting rect.top.
+      const rectTop = archSectionRef.current
+        ? archSectionRef.current.getBoundingClientRect().top
+        : 0;
+      const bandTop = Math.max(0, rectTop);
+      const bandHeight = Math.max(1, h - bandTop);
+
+      // Starts dead centre like a hero title and climbs to the upper third
+      // as it grows; the radius tightens so the wrap deepens with it.
+      const cx = w / 2;
+      const apexY = bandTop + bandHeight * (0.5 - 0.25 * t) - rectTop;
+      const radius = h * (1.3 - 0.62 * t);
+      const cy = apexY + radius;
+
+      const halfSpan = 1.35; // ~77° of path either side — longer than the text
+      const dx = radius * Math.sin(halfSpan);
+      const dy = radius * Math.cos(halfSpan);
+      path.setAttribute(
+        "d",
+        `M ${cx - dx} ${cy - dy} A ${radius} ${radius} 0 0 1 ${cx + dx} ${cy - dy}`
+      );
+
+      const fontSize = w * (0.027 + 0.075 * t);
+      text.style.fontSize = `${fontSize}px`;
+      text.style.letterSpacing = `${fontSize * 0.06}px`;
+
+      // Dissolve must start while the text is still clear of the rising
+      // rim, otherwise the beige simply hides it before it can burn out.
+      const glow = gsap.utils.clamp(0, 1, (t - 0.2) / 0.4);
+      const dissolve = gsap.utils.clamp(0, 1, (t - 0.62) / 0.23);
+
+      text.style.opacity = String(curvedState.entry * (1 - dissolve));
+      text.style.filter =
+        `drop-shadow(0 0 ${6 + glow * 30}px rgba(200,162,60,${0.25 + glow * 0.6})) blur(${dissolve * 12}px)`;
+    };
+    renderCurvedTitle();
+
+    // 1a. Entry — fades the title in over the back half of the hero scroll,
+    // so it is already on screen before the arch section reaches the top.
+    const heroSection = document.querySelector('[data-section-index="0"]');
+    if (heroSection) {
+      ScrollTrigger.create({
+        trigger: heroSection,
+        start: "top top",
+        end: "bottom top",
+        scrub: true,
+        onUpdate: (self) => {
+          curvedState.entry = gsap.utils.clamp(0, 1, (self.progress - 0.5) / 0.3);
+          renderCurvedTitle();
+        },
+      });
+    }
+
+    // 1b. Smooth Arch Reveal (Pinned Clip-Path) — also drives the title growth
     if (archSectionRef.current && archMaskRef.current) {
       const archProgress = { percent: 5 };
       const updateArch = () => {
@@ -77,6 +173,8 @@ export default function Home() {
         if (archMaskRef.current) {
           archMaskRef.current.style.clipPath = `circle(${p}% at 50% 100%)`;
         }
+        curvedState.percent = p;
+        renderCurvedTitle();
       };
       updateArch();
       gsap.to(archProgress, {
@@ -254,9 +352,30 @@ export default function Home() {
 
         {/* 1. Dynamic Arch Section: ¿Por qué elegirnos? */}
         <section data-section-index="1" data-bg-color="var(--color-pf-navy)" ref={archSectionRef} className="h-screen w-full relative bg-[var(--color-pf-navy)] overflow-hidden">
+          {/* Curved "Promotoras Full" title. Sits above the navy backdrop but
+              below the beige mask (z-10) so the rising dome swallows it. It is
+              positioned against the viewport, so it is already centred in the
+              navy band while this section is still scrolling up over the hero. */}
+          <div ref={curvedTextRef} className="absolute inset-0 z-0 pointer-events-none">
+            <svg ref={curvedTextSvgRef} className="w-full h-full" preserveAspectRatio="none">
+              <path ref={curvedTextPathRef} id="archCurvePath" fill="none" />
+              <text
+                ref={curvedTextElRef}
+                textAnchor="middle"
+                className="font-serif"
+                style={{ fontSize: "20px", letterSpacing: "1px", opacity: 0 }}
+              >
+                <textPath href="#archCurvePath" xlinkHref="#archCurvePath" startOffset="50%">
+                  <tspan fill="#F2EDE3">PROMOTORAS </tspan>
+                  <tspan fill="#C8A23C">FULL</tspan>
+                </textPath>
+              </text>
+            </svg>
+          </div>
+
           <div
             ref={archMaskRef}
-            className="absolute inset-0 bg-[var(--color-pf-beige)] flex flex-col items-center justify-center pt-20"
+            className="absolute inset-0 z-10 bg-[var(--color-pf-beige)] flex flex-col items-center justify-center pt-20"
           >
             <h2 data-reveal className="font-serif text-[clamp(28px,5vw,64px)] uppercase tracking-[0.2em] text-[var(--color-pf-navy)] text-center max-w-[1000px] leading-[1.2] font-light px-6 mb-4">
               ¿Por qué elegirnos?
@@ -313,19 +432,19 @@ export default function Home() {
             <div className="relative z-10 flex flex-col items-center px-6 mt-0 md:mt-[-10vh]">
               {/* Eyebrow line — mobile only */}
               <div className="flex items-center gap-3 mb-4 md:hidden">
-                <div className="w-6 h-[1px] bg-[var(--color-pf-navy)]/40" />
-                <span className="font-mono text-[8px] tracking-[0.4em] uppercase text-[var(--color-pf-navy)]/60">Lotes Campestres</span>
-                <div className="w-6 h-[1px] bg-[var(--color-pf-navy)]/40" />
+                <div className="w-6 h-[1px] bg-[var(--color-pf-gold)]/50" />
+                <span className="font-mono text-[8px] tracking-[0.4em] uppercase text-[var(--color-pf-gold)]/80">Lotes Campestres</span>
+                <div className="w-6 h-[1px] bg-[var(--color-pf-gold)]/50" />
               </div>
 
-              <h2 className="font-serif text-[clamp(34px,9vw,200px)] uppercase tracking-tight leading-[0.85] font-light text-[var(--color-pf-navy)] drop-shadow-2xl opacity-90 text-center">
+              <h2 className="font-serif text-[clamp(34px,9vw,200px)] uppercase tracking-tight leading-[0.85] font-light text-[var(--color-pf-beige)] drop-shadow-2xl opacity-95 text-center">
                 Proyectos
               </h2>
               <h2 className="font-script text-[clamp(46px,11vw,250px)] leading-[0.6] text-[var(--color-pf-gold)] mt-[-8px] md:mt-[-40px] drop-shadow-2xl text-center">
                 Destacados
               </h2>
 
-              <div className="mt-8 md:mt-16 max-w-[340px] md:max-w-[450px] text-center text-[var(--color-pf-navy)] text-[9px] md:text-[11px] uppercase tracking-[0.2em] md:tracking-[0.25em] leading-relaxed font-mono opacity-60 px-4 md:px-0">
+              <div className="mt-8 md:mt-16 max-w-[340px] md:max-w-[450px] text-center text-[var(--color-pf-beige)] text-[9px] md:text-[11px] uppercase tracking-[0.2em] md:tracking-[0.25em] leading-relaxed font-mono opacity-65 px-4 md:px-0">
                 Inspirado en la naturaleza y diseñado para tu bienestar. Lotes campestres exclusivos que combinan privacidad y conexión total con el entorno.
               </div>
             </div>
