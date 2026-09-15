@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { LOT_ESTADOS, lotEstadoInfo } from "@/lib/lotStatus";
-import { parseLotGeometry, polygonPoints } from "@/lib/lotGeometry";
+import { parseLotGeometry, polygonPoints, polygonCentroid } from "@/lib/lotGeometry";
 
 export interface ShowroomLot {
   id: string;
@@ -20,6 +20,17 @@ const DRAG_THRESHOLD_PX = 5;
 
 function formatPrecio(precio: number) {
   return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(precio);
+}
+
+// Best-effort "Manzana X" / "Parque" label from codes like "MZ-A-07" or
+// "M122-06" — purely cosmetic, falls back to nothing if the code doesn't fit.
+function zonaFromCodigo(codigo: string): string | null {
+  const match = codigo.match(/^(.*)-\d+$/);
+  if (!match) return null;
+  const prefix = match[1].replace(/^MZ-?/i, "").trim();
+  if (!prefix) return null;
+  if (/^C$/i.test(prefix)) return "Parque Central";
+  return `Manzana ${prefix}`;
 }
 
 export default function ProjectShowroom({
@@ -96,17 +107,22 @@ export default function ProjectShowroom({
   const onPointerUp = (e: React.PointerEvent) => {
     dragRef.current.active = false;
     (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+
+    // Pointer capture on this container retargets the native click event to
+    // itself, so a polygon's own onClick never fires — resolve the lot from
+    // the real element under the cursor instead.
+    if (dragRef.current.moved > DRAG_THRESHOLD_PX) return;
+    const target = document.elementFromPoint(e.clientX, e.clientY);
+    const lotId = target?.getAttribute("data-lot-id");
+    if (lotId) {
+      const lot = lots.find(l => l.id === lotId);
+      if (lot) setSelected(lot);
+    }
   };
 
   const onWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     applyZoom(zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15));
-  };
-
-  // A click that followed a real drag is a pan, not a lot selection.
-  const handleLotClick = (lot: ShowroomLot) => {
-    if (dragRef.current.moved > DRAG_THRESHOLD_PX) return;
-    setSelected(lot);
   };
 
   const whatsappHref = (() => {
@@ -147,20 +163,38 @@ export default function ProjectShowroom({
               if (pts.length < 3) return null;
               const info = lotEstadoInfo(lot.estado);
               const isActive = selected?.id === lot.id || hovered === lot.id;
+              const [cx, cy] = polygonCentroid(pts);
               return (
-                <polygon
+                <g
                   key={lot.id}
-                  points={polygonPoints(pts)}
-                  fill={info.color}
-                  fillOpacity={isActive ? 0.72 : 0.4}
-                  stroke={info.color}
-                  strokeWidth={isActive ? 0.35 : 0.15}
-                  vectorEffect="non-scaling-stroke"
-                  className="cursor-pointer transition-[fill-opacity] duration-150"
+                  className="cursor-pointer"
                   onMouseEnter={() => setHovered(lot.id)}
                   onMouseLeave={() => setHovered(null)}
-                  onClick={() => handleLotClick(lot)}
-                />
+                >
+                  {/* Real lot shape: invisible hit-area, outlined only on hover/selection */}
+                  <polygon
+                    data-lot-id={lot.id}
+                    points={polygonPoints(pts)}
+                    fill="transparent"
+                    stroke={info.color}
+                    strokeWidth={isActive ? 0.3 : 0}
+                    strokeOpacity={0.9}
+                    vectorEffect="non-scaling-stroke"
+                    className="transition-[stroke-width] duration-150"
+                  />
+                  {/* Pin marker at the lot's center */}
+                  <circle
+                    data-lot-id={lot.id}
+                    cx={cx}
+                    cy={cy}
+                    r={isActive ? 0.85 : 0.55}
+                    fill={info.color}
+                    stroke="white"
+                    strokeWidth={0.2}
+                    vectorEffect="non-scaling-stroke"
+                    className="transition-[r] duration-150"
+                  />
+                </g>
               );
             })}
           </svg>
@@ -201,7 +235,7 @@ export default function ProjectShowroom({
 
       {/* Panel del lote seleccionado */}
       {selected && (
-        <div className="absolute bottom-0 left-0 right-0 md:bottom-4 md:right-4 md:left-auto w-full md:w-[340px] bg-white md:rounded-2xl rounded-t-2xl shadow-2xl p-6 text-left">
+        <div className="fixed z-50 bottom-0 left-0 right-0 md:bottom-6 md:right-6 md:left-auto md:top-auto w-full md:w-[340px] max-h-[80vh] overflow-y-auto bg-white md:rounded-2xl rounded-t-2xl shadow-2xl p-6 text-left">
           <button
             onClick={() => setSelected(null)}
             aria-label="Cerrar"
@@ -213,18 +247,27 @@ export default function ProjectShowroom({
             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: lotEstadoInfo(selected.estado).color }} />
             <span className="text-[10px] uppercase tracking-[0.2em] text-[var(--color-pf-navy)]/50 font-mono">{lotEstadoInfo(selected.estado).label}</span>
           </div>
-          <h3 className="font-serif text-2xl text-[var(--color-pf-navy)] mb-4">{selected.codigo}</h3>
-          <div className="flex gap-8 mb-6">
+          <h3 className="font-serif text-2xl text-[var(--color-pf-navy)] mb-1">{selected.codigo}</h3>
+          {selected.precio && (
+            <div className="font-serif text-2xl font-medium text-[var(--color-pf-navy)] mb-4">{formatPrecio(selected.precio)}</div>
+          )}
+          <div className="flex flex-col mb-6">
             {selected.area && (
-              <div>
-                <div className="font-serif text-xl font-light text-[var(--color-pf-navy)]">{selected.area} m²</div>
-                <div className="text-[10px] tracking-[0.15em] uppercase text-[var(--color-pf-navy)]/40 mt-1">Área</div>
+              <div className="flex items-center justify-between text-sm border-t border-black/5 py-3">
+                <span className="flex items-center gap-2 text-[var(--color-pf-navy)]/50">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="1" /><path d="M4 9h16M9 4v16" /></svg>
+                  Superficie total
+                </span>
+                <span className="font-medium text-[var(--color-pf-navy)]">{selected.area} m²</span>
               </div>
             )}
-            {selected.precio && (
-              <div>
-                <div className="font-serif text-xl font-light text-[var(--color-pf-navy)]">{formatPrecio(selected.precio)}</div>
-                <div className="text-[10px] tracking-[0.15em] uppercase text-[var(--color-pf-navy)]/40 mt-1">Precio</div>
+            {zonaFromCodigo(selected.codigo) && (
+              <div className="flex items-center justify-between text-sm border-t border-black/5 py-3">
+                <span className="flex items-center gap-2 text-[var(--color-pf-navy)]/50">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>
+                  Ubicación
+                </span>
+                <span className="font-medium text-[var(--color-pf-navy)]">{zonaFromCodigo(selected.codigo)}</span>
               </div>
             )}
           </div>
@@ -232,7 +275,7 @@ export default function ProjectShowroom({
             <div className="flex gap-3 flex-wrap">
               {whatsappHref && (
                 <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-emerald-600 !text-white hover:bg-emerald-700 transition-colors text-[11px] uppercase tracking-[0.15em] font-semibold">
-                  Quiero este lote
+                  Solicitar información
                 </a>
               )}
               <Link href="/contacto" className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-[var(--color-pf-navy)] text-[var(--color-pf-navy)] hover:bg-[var(--color-pf-navy)] hover:!text-white transition-colors text-[11px] uppercase tracking-[0.15em] font-semibold">
