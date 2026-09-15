@@ -64,6 +64,7 @@ export default function Home() {
   const palmRightRef = useRef<HTMLDivElement>(null);
   const ctaSectionRef = useRef<HTMLDivElement>(null);
   const ctaMaskRef = useRef<HTMLDivElement>(null);
+  const ctaContentRef = useRef<HTMLDivElement>(null);
 
   useGSAP(() => {
     // 0. Smooth Background Color Transitions
@@ -123,7 +124,13 @@ export default function Home() {
       // as it grows; the radius tightens so the wrap deepens with it.
       const cx = w / 2;
       const apexY = bandTop + bandHeight * (0.5 - 0.25 * t) - rectTop;
-      const radius = h * (1.3 - 0.62 * t);
+      const baseRadius = h * (1.3 - 0.62 * t);
+      // Blend in extra radius (i.e. flatten the arc) with an exponential
+      // decay instead of a fixed window — there's no boundary for the
+      // scroll's own easing to collide with, so it can never look like it
+      // snaps: the title starts essentially flat and eases continuously
+      // into the full wrap as the dome rises.
+      const radius = baseRadius * (1 + 16 * Math.exp(-4 * t));
       const cy = apexY + radius;
 
       const halfSpan = 1.35; // ~77° of path either side — longer than the text
@@ -192,24 +199,28 @@ export default function Home() {
       });
     }
 
-    // 1.5. CTA Reveal (Pinned Clip-Path, inverse of the Arch reveal)
-    if (ctaSectionRef.current && ctaMaskRef.current) {
-      gsap.fromTo(
-        ctaMaskRef.current,
-        { clipPath: "circle(4% at 50% 0%)" },
-        {
-          clipPath: "circle(150% at 50% 0%)",
-          ease: "power1.out",
-          scrollTrigger: {
-            trigger: ctaSectionRef.current,
-            start: "top top",
-            end: "+=30%",
-            pin: true,
-            scrub: 0.5,
-            refreshPriority: -1,
-          },
-        }
-      );
+    // 1.5. CTA Reveal (Pinned Clip-Path, inverse of the Arch reveal).
+    // The circle grows first; the headline only fades in once it's fully
+    // inside the navy circle, so it's never sliced by the growing edge.
+    if (ctaSectionRef.current && ctaMaskRef.current && ctaContentRef.current) {
+      gsap.set(ctaContentRef.current, { opacity: 0, y: 24 });
+      const ctaTl = gsap.timeline({
+        scrollTrigger: {
+          trigger: ctaSectionRef.current,
+          start: "top top",
+          end: "+=45%",
+          pin: true,
+          scrub: 0.6,
+          refreshPriority: -1,
+        },
+      });
+      ctaTl
+        .fromTo(
+          ctaMaskRef.current,
+          { clipPath: "circle(8% at 50% 0%)" },
+          { clipPath: "circle(150% at 50% 0%)", ease: "power1.inOut", duration: 1 }
+        )
+        .to(ctaContentRef.current, { opacity: 1, y: 0, ease: "power2.out", duration: 0.5 }, 0.5);
     }
 
     // 2. Parallax & Image Zoom (Scale Progressive)
@@ -541,15 +552,15 @@ export default function Home() {
             ref={ctaMaskRef}
             className="absolute inset-0 bg-[var(--color-pf-navy)] flex flex-col items-center justify-center px-6"
           >
-            <div className="max-w-[1400px] mx-auto text-center relative z-10">
-              <h2 data-reveal className="font-serif text-[clamp(36px,7vw,90px)] uppercase tracking-tight leading-[1] font-light text-white">
+            <div ref={ctaContentRef} className="max-w-[1400px] mx-auto text-center relative z-10">
+              <h2 className="font-serif text-[clamp(36px,7vw,90px)] uppercase tracking-tight leading-[1] font-light text-white">
                 ¿Deseas reservar <br/>
                 <span className="font-script text-[var(--color-pf-gold)] text-[clamp(70px,12vw,140px)] lowercase -mt-4 block drop-shadow-sm">tu lote?</span>
               </h2>
-              <p data-reveal className="mt-12 text-sm md:text-base tracking-[0.1em] uppercase font-light text-white/70 max-w-lg mx-auto leading-relaxed">
+              <p className="mt-12 text-sm md:text-base tracking-[0.1em] uppercase font-light text-white/70 max-w-lg mx-auto leading-relaxed">
                 Conoce los pasos que debes realizar para adquirir el lote de tus sueños.
               </p>
-              <Link href="/contacto" data-reveal className="mt-12 mx-auto w-max px-12 py-5 rounded-full bg-[var(--color-pf-gold)] !text-[var(--color-pf-navy)] text-[11px] tracking-[0.2em] uppercase font-semibold hover:bg-white transition-colors duration-500 shadow-xl flex items-center justify-center">
+              <Link href="/contacto" className="mt-12 mx-auto w-max px-12 py-5 rounded-full bg-[var(--color-pf-gold)] !text-[var(--color-pf-navy)] text-[11px] tracking-[0.2em] uppercase font-semibold hover:bg-white transition-colors duration-500 shadow-xl flex items-center justify-center">
                 <span>Más Información</span>
               </Link>
             </div>

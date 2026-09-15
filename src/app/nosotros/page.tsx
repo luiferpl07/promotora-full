@@ -126,7 +126,7 @@ export default function Nosotros() {
               <h3 data-reveal className="font-serif font-light text-[clamp(30px,4vw,48px)] leading-[1.1] mb-8 text-[var(--color-pf-navy)]">
                 Un servicio integral y transparente
               </h3>
-              <p data-reveal className="text-[15px] md:text-[16px] leading-[1.8] text-[var(--color-pf-dark)]/70 font-light">
+              <p data-reveal className="text-[15px] md:text-[16px] leading-[1.8] text-[var(--color-pf-dark)] font-normal">
                 Brindar un servicio integral, confiable y transparente en la comercialización de lotes campestres exclusivos, ubicados en áreas naturales estratégicas. Acompañamos a nuestros clientes en cada etapa del proceso, promoviendo proyectos sostenibles que armonicen con la naturaleza y generen bienestar social y ambiental para las comunidades donde operamos.
               </p>
             </div>
@@ -137,7 +137,7 @@ export default function Nosotros() {
               <h3 data-reveal className="font-serif font-light text-[clamp(30px,4vw,48px)] leading-[1.1] mb-8 text-[var(--color-pf-navy)]">
                 Líderes en lotes campestres
               </h3>
-              <p data-reveal className="text-[15px] md:text-[16px] leading-[1.8] text-[var(--color-pf-dark)]/70 font-light">
+              <p data-reveal className="text-[15px] md:text-[16px] leading-[1.8] text-[var(--color-pf-dark)] font-normal">
                 Ser reconocidos a nivel nacional como la promotora líder en lotes campestres, destacándonos por ofrecer proyectos innovadores, sostenibles y de alta calidad, que conecten a las personas con la naturaleza y transformen el concepto de vida campestre.
               </p>
             </div>
@@ -157,7 +157,7 @@ export default function Nosotros() {
               {valores.map((v, i) => (
                 <div key={i} data-reveal className="text-center border-t border-[var(--color-pf-navy)]/10 pt-8">
                   <div className="font-serif text-2xl text-[var(--color-pf-navy)] mb-4">{v.titulo}</div>
-                  <p className="text-[14px] leading-[1.7] text-[var(--color-pf-dark)]/60 font-light">{v.texto}</p>
+                  <p className="text-[14px] leading-[1.7] text-[var(--color-pf-dark)]/70 font-normal">{v.texto}</p>
                 </div>
               ))}
             </div>
@@ -178,7 +178,7 @@ export default function Nosotros() {
                       <span className="text-[10px] tracking-[0.3em] uppercase text-[var(--color-pf-navy)]/50">{r.kicker}</span>
                     </div>
                     <div className="font-serif font-light text-[clamp(28px,3vw,40px)] leading-[1.1] mt-12 mb-6 text-[var(--color-pf-navy)] group-hover:text-[var(--color-pf-gold)] transition-colors">{r.titulo}</div>
-                    <p className="text-[15px] leading-[1.8] text-[var(--color-pf-dark)]/70 font-light mt-auto">{r.texto}</p>
+                    <p className="text-[15px] leading-[1.8] text-[var(--color-pf-dark)]/80 font-normal mt-auto">{r.texto}</p>
                   </div>
                 </div>
               ))}
@@ -228,10 +228,10 @@ export default function Nosotros() {
               <h3 data-reveal className="font-serif font-light text-[clamp(32px,4.5vw,56px)] leading-[1.1] mb-8 text-[var(--color-pf-navy)]">
                 Responsable <span className="text-[var(--color-pf-gold)]">&</span> Sostenible
               </h3>
-              <p data-reveal className="text-[15px] md:text-[16px] leading-[1.8] text-[var(--color-pf-dark)]/70 font-light mb-8">
+              <p data-reveal className="text-[15px] md:text-[16px] leading-[1.8] text-[var(--color-pf-dark)]/80 font-normal mb-8">
                 Creemos que el desarrollo inmobiliario no debe estar reñido con la conservación del entorno. Aplicamos un enfoque responsable y sostenible en cada proyecto, garantizando armonía entre crecimiento económico, bienestar social y respeto ambiental.
               </p>
-              <p data-reveal className="text-[14px] leading-[1.8] text-[var(--color-pf-dark)]/50 font-light italic">
+              <p data-reveal className="text-[14px] leading-[1.8] text-[var(--color-pf-dark)]/65 font-normal italic">
                 No solo comercializamos lotes: impulsamos un modelo de vida conectado con la naturaleza.
               </p>
             </div>
@@ -243,7 +243,7 @@ export default function Nosotros() {
                   </span>
                   <div>
                     <div className="font-serif text-lg text-[var(--color-pf-navy)] mb-1">{c.titulo}</div>
-                    <p className="text-[13px] leading-[1.7] text-[var(--color-pf-dark)]/60 font-light">{c.texto}</p>
+                    <p className="text-[13px] leading-[1.7] text-[var(--color-pf-dark)]/70 font-normal">{c.texto}</p>
                   </div>
                 </div>
               ))}
@@ -258,7 +258,7 @@ export default function Nosotros() {
                 <span className="text-[var(--color-pf-gold)]">Equipo</span><span>Nuestros Asesores</span>
              </div>
              <h2 data-reveal className="font-serif font-light text-[clamp(36px,5vw,70px)] leading-[1] tracking-[-0.02em] text-[var(--color-pf-navy)]">Alguien que conoce cada lote</h2>
-             <p data-reveal className="max-w-[700px] mx-auto text-[15px] leading-[1.8] text-[var(--color-pf-dark)]/60 font-light mt-8">
+             <p data-reveal className="max-w-[700px] mx-auto text-[15px] leading-[1.8] text-[var(--color-pf-dark)]/70 font-normal mt-8">
                Contamos con un equipo humano altamente calificado y comprometido: asesores comerciales, ingenieros y arquitectos, abogados, profesionales en administración y finanzas, técnicos de campo y especialistas en sostenibilidad.
              </p>
           </div>

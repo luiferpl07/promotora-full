@@ -92,18 +92,8 @@ export default function Navigation({ customLogo }: NavigationProps = {}) {
               />
             </Link>
 
-            <Link
-              href="/contacto"
-              aria-label="Agendar Visita"
-              className={`p-2 -mr-2 transition-colors ${scrolled ? "text-[var(--color-pf-navy)]" : "text-white"}`}
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
-            </Link>
+            {/* Spacer to keep the logo centered against the menu button on the left */}
+            <div className="w-10" aria-hidden="true" />
           </div>
 
           {/* Desktop Header */}
@@ -182,9 +172,15 @@ export default function Navigation({ customLogo }: NavigationProps = {}) {
         <Link
           href="/contacto"
           onClick={() => setMenuOpen(false)}
-          className="justify-self-start mt-[38px] px-[30px] py-[15px] rounded-full bg-[var(--color-pf-gold)] text-[var(--color-pf-dark)] text-[10px] tracking-[0.24em] uppercase w-max hover:bg-[var(--color-pf-bg)] transition-colors"
+          className="justify-self-start mt-[38px] flex items-center gap-3 px-[30px] py-[15px] rounded-full bg-[var(--color-pf-gold)] text-[var(--color-pf-dark)] text-[10px] tracking-[0.24em] uppercase w-max hover:bg-[var(--color-pf-bg)] transition-colors"
         >
-          Agendar visita
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span>Agendar visita</span>
         </Link>
         <div className="absolute left-[34px] bottom-[38px] text-[10px] tracking-[0.24em] uppercase opacity-45">
           {config.contacto_horario || "Lunes a domingo · 8:00 a.m. — 5:00 p.m."}
