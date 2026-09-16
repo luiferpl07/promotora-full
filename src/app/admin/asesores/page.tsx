@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Button, Card, Field, Icon, LoadingBlock, TextInput } from "@/components/admin/AdminUI";
 
 interface Advisor {
   id: string;
@@ -20,11 +19,7 @@ export default function AdminAsesores() {
   const [editing, setEditing] = useState<Partial<Advisor> | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const load = () => fetch("/api/advisors")
-    .then(r => r.json())
-    .then(d => setAdvisors(Array.isArray(d) ? d : []))
-    .catch(() => setAdvisors([]))
-    .finally(() => setLoading(false));
+  const load = () => fetch("/api/advisors").then(r => r.json()).then(setAdvisors).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
 
   const handleDelete = async (id: string) => {
@@ -70,24 +65,21 @@ export default function AdminAsesores() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-6 flex-wrap">
+      <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-3 text-[10px] tracking-[0.3em] uppercase font-mono text-[var(--color-pf-navy)]/40 mb-2">
-            <span className="text-[var(--color-pf-gold)]">Equipo</span>
-          </div>
-          <h1 className="font-serif font-light text-3xl md:text-[34px] text-[var(--color-pf-navy)]">Asesores Comerciales</h1>
-          <p className="text-[var(--color-pf-navy)]/50 mt-2 text-sm">Gestiona el equipo de asesores.</p>
+          <h1 className="text-2xl font-bold text-gray-900">Asesores Comerciales</h1>
+          <p className="text-gray-500 mt-1">Gestiona el equipo de asesores.</p>
         </div>
-        <Button onClick={() => setEditing({ nombre: "", rol: "", orden: advisors.length + 1 })}>
-          <Icon name="plus" className="w-4 h-4" /> Nuevo Asesor
-        </Button>
+        <button onClick={() => setEditing({ nombre: "", rol: "", orden: advisors.length + 1 })} className="px-6 py-3 bg-[#16203A] text-white rounded-xl text-sm font-medium hover:bg-[#C8A23C] transition-colors">
+          + Nuevo Asesor
+        </button>
       </div>
 
       {/* Modal de edición */}
       {editing && (
-        <div className="fixed inset-0 bg-[var(--color-pf-navy)]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8 space-y-5">
-            <h2 className="font-serif text-2xl text-[var(--color-pf-navy)]">{editing.id ? "Editar Asesor" : "Nuevo Asesor"}</h2>
+            <h2 className="text-xl font-bold text-gray-900">{editing.id ? "Editar Asesor" : "Nuevo Asesor"}</h2>
             {[
               { label: "Nombre", field: "nombre" },
               { label: "Rol / Proyecto", field: "rol" },
@@ -95,39 +87,40 @@ export default function AdminAsesores() {
               { label: "WhatsApp URL", field: "whatsapp" },
               { label: "Orden", field: "orden", type: "number" },
             ].map(({ label, field, type }) => (
-              <Field key={field} label={label}>
-                <TextInput type={type || "text"} value={(editing as any)[field] || ""} onChange={e => setEditing(prev => prev ? { ...prev, [field]: type === "number" ? +e.target.value : e.target.value } : prev)} />
-              </Field>
+              <div key={field}>
+                <label className="block text-xs uppercase tracking-widest font-medium text-gray-500 mb-2">{label}</label>
+                <input type={type || "text"} value={(editing as any)[field] || ""} onChange={e => setEditing(prev => prev ? { ...prev, [field]: type === "number" ? +e.target.value : e.target.value } : prev)} className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#C8A23C]" />
+              </div>
             ))}
             <div>
-              <div className="block text-[10px] uppercase tracking-[0.2em] font-mono font-medium text-[var(--color-pf-navy)]/50 mb-2">Foto</div>
+              <label className="block text-xs uppercase tracking-widest font-medium text-gray-500 mb-2">Foto</label>
               {editing.img && <Image src={editing.img} alt="" width={80} height={80} className="w-20 h-20 object-cover rounded-full mb-3" />}
               <input type="file" accept="image/*" onChange={uploadImg} className="text-sm" />
             </div>
             <div className="flex gap-3 justify-end pt-4">
-              <Button variant="ghost" onClick={() => setEditing(null)}>Cancelar</Button>
-              <Button onClick={handleSave} disabled={saving}>{saving ? "Guardando..." : "Guardar"}</Button>
+              <button onClick={() => setEditing(null)} className="px-5 py-2 border border-gray-200 text-gray-500 rounded-lg text-sm hover:text-gray-700 transition-colors">Cancelar</button>
+              <button onClick={handleSave} disabled={saving} className="px-8 py-2 bg-[#16203A] text-white rounded-lg text-sm hover:bg-[#C8A23C] transition-colors disabled:opacity-50">{saving ? "Guardando..." : "Guardar"}</button>
             </div>
           </div>
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {loading ? <LoadingBlock /> : advisors.map(a => (
-          <Card key={a.id} className="p-6 flex flex-col items-center text-center gap-4">
-            <div className="w-20 h-20 rounded-full overflow-hidden bg-[var(--color-pf-beige-light)]">
-              {a.img ? <Image src={a.img} alt={a.nombre} width={80} height={80} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Icon name="user" className="w-8 h-8 text-[var(--color-pf-navy)]/25" /></div>}
+        {loading ? <p className="text-gray-400">Cargando...</p> : advisors.map(a => (
+          <div key={a.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col items-center text-center gap-4">
+            <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100">
+              {a.img ? <Image src={a.img} alt={a.nombre} width={80} height={80} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-300 text-2xl">👤</div>}
             </div>
             <div>
-              <div className="font-semibold text-[var(--color-pf-navy)]">{a.nombre}</div>
-              <div className="text-sm text-[var(--color-pf-gold)] font-mono uppercase tracking-widest">{a.rol}</div>
-              {a.proyectoAsignado && <div className="text-xs text-[var(--color-pf-navy)]/35 mt-1">{a.proyectoAsignado}</div>}
+              <div className="font-semibold text-gray-900">{a.nombre}</div>
+              <div className="text-sm text-[#C8A23C] font-mono uppercase tracking-widest">{a.rol}</div>
+              {a.proyectoAsignado && <div className="text-xs text-gray-400 mt-1">{a.proyectoAsignado}</div>}
             </div>
             <div className="flex gap-2 w-full">
-              <button onClick={() => setEditing(a)} className="flex-1 py-2 text-xs uppercase tracking-widest font-mono border border-[var(--color-pf-navy)] text-[var(--color-pf-navy)] rounded-full hover:bg-[var(--color-pf-navy)] hover:text-white transition-colors">Editar</button>
-              <button onClick={() => handleDelete(a.id)} className="flex-1 py-2 text-xs uppercase tracking-widest font-mono border border-red-200 text-red-400 rounded-full hover:bg-red-50 transition-colors">Eliminar</button>
+              <button onClick={() => setEditing(a)} className="flex-1 py-2 text-xs border border-[#16203A] text-[#16203A] rounded-lg hover:bg-[#16203A] hover:text-white transition-colors">Editar</button>
+              <button onClick={() => handleDelete(a.id)} className="flex-1 py-2 text-xs border border-red-200 text-red-400 rounded-lg hover:bg-red-50 transition-colors">Eliminar</button>
             </div>
-          </Card>
+          </div>
         ))}
       </div>
     </div>

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Badge, Icon, LinkButton, LoadingBlock, PageHeader, TableShell, Thead, Toggle } from "@/components/admin/AdminUI";
 
 interface Project {
   id: string;
@@ -18,34 +17,16 @@ interface Project {
   images: { url: string; tipo: string }[];
 }
 
-const estadoColor: Record<string, "green" | "amber" | "red" | "gray"> = {
-  activo: "green",
-  proximamente: "amber",
-  agotado: "red",
-};
-
 export default function AdminProyectos() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // La API responde un objeto de error cuando la base no está disponible, así
-  // que hay que comprobar la forma antes de tratarlo como listado.
-  const load = () =>
+  useEffect(() => {
     fetch("/api/projects")
       .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setProjects(data);
-          setError(null);
-        } else {
-          setError("No se pudieron cargar los proyectos. Revisa la conexión a la base de datos.");
-        }
-      })
-      .catch(() => setError("No se pudieron cargar los proyectos. Revisa la conexión a la base de datos."))
+      .then(setProjects)
       .finally(() => setLoading(false));
-
-  useEffect(() => { load(); }, []);
+  }, []);
 
   const togglePublicado = async (p: Project) => {
     await fetch(`/api/projects/${p.id}`, {
@@ -56,72 +37,78 @@ export default function AdminProyectos() {
     setProjects(prev => prev.map(x => x.id === p.id ? { ...x, publicado: !x.publicado } : x));
   };
 
-  const handleDelete = async (p: Project) => {
-    if (!confirm(`¿Eliminar el proyecto "${p.nombre}"? Esta acción no se puede deshacer y borrará también su galería de imágenes.`)) return;
-    await fetch(`/api/projects/${p.id}`, { method: "DELETE" });
-    setProjects(prev => prev.filter(x => x.id !== p.id));
-  };
-
   return (
     <div className="space-y-6">
-      <PageHeader
-        kicker="Portafolio"
-        title="Proyectos"
-        subtitle="Gestiona los proyectos del portafolio."
-        action={<LinkButton href="/admin/proyectos/nuevo"><Icon name="plus" className="w-4 h-4" /> Nuevo Proyecto</LinkButton>}
-      />
-
-      {loading ? (
-        <TableShell><tbody><tr><td><LoadingBlock /></td></tr></tbody></TableShell>
-      ) : error ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-6 py-5 text-sm text-red-700">
-          {error}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Proyectos</h1>
+          <p className="text-gray-500 mt-1">Gestiona los proyectos del portafolio.</p>
         </div>
-      ) : (
-        <TableShell>
-          <Thead cols={["Proyecto", "Lotes", "Área Desde", "Estado", "Publicado", "Acciones"]} />
-          <tbody className="divide-y divide-[var(--color-pf-navy)]/5">
-            {projects.map((p) => (
-              <tr key={p.id} className="hover:bg-[var(--color-pf-beige-light)]/60 transition-colors">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-4">
-                    {p.imgHero && (
-                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-[var(--color-pf-beige-light)] flex-shrink-0">
-                        <Image src={p.imgHero} alt={p.nombre} width={48} height={48} className="w-full h-full object-cover" />
-                      </div>
-                    )}
-                    <div>
-                      <div className="font-medium text-[var(--color-pf-navy)]">{p.nombre}</div>
-                      <div className="text-xs text-[var(--color-pf-navy)]/35">/proyectos/{p.slug}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">{p.lotes ?? "—"}</td>
-                <td className="px-6 py-4">{p.areaDesde ? `${p.areaDesde} m²` : "—"}</td>
-                <td className="px-6 py-4">
-                  <Badge color={estadoColor[p.estado] || "gray"}>{p.estado}</Badge>
-                </td>
-                <td className="px-6 py-4">
-                  <Toggle checked={p.publicado} onChange={() => togglePublicado(p)} />
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex gap-2">
-                    <Link href={`/admin/proyectos/${p.id}`} className="w-8 h-8 flex items-center justify-center bg-[var(--color-pf-navy)] text-white rounded-lg hover:bg-[var(--color-pf-gold)] hover:text-[var(--color-pf-navy)] transition-colors" title="Editar">
-                      <Icon name="pencil" className="w-4 h-4" />
-                    </Link>
-                    <Link href={`/proyectos/${p.slug}`} target="_blank" className="w-8 h-8 flex items-center justify-center border border-[var(--color-pf-navy)]/15 text-[var(--color-pf-navy)]/50 rounded-lg hover:text-[var(--color-pf-navy)] transition-colors" title="Ver en el sitio">
-                      <Icon name="external" className="w-4 h-4" />
-                    </Link>
-                    <button onClick={() => handleDelete(p)} className="w-8 h-8 flex items-center justify-center border border-red-200 text-red-400 rounded-lg hover:bg-red-50 transition-colors" title="Eliminar">
-                      <Icon name="trash" className="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
+        <Link href="/admin/proyectos/nuevo" className="px-6 py-3 bg-[#16203A] text-white rounded-xl text-sm font-medium hover:bg-[#C8A23C] transition-colors">
+          + Nuevo Proyecto
+        </Link>
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="p-12 text-center text-gray-400">Cargando...</div>
+        ) : (
+          <table className="w-full text-left text-sm text-gray-600">
+            <thead className="bg-gray-50 text-gray-500 uppercase tracking-wider text-xs font-medium">
+              <tr>
+                <th className="px-6 py-4">Proyecto</th>
+                <th className="px-6 py-4">Lotes</th>
+                <th className="px-6 py-4">Área Desde</th>
+                <th className="px-6 py-4">Estado</th>
+                <th className="px-6 py-4">Publicado</th>
+                <th className="px-6 py-4">Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </TableShell>
-      )}
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {projects.map((p) => (
+                <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-4">
+                      {p.imgHero && (
+                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                          <Image src={p.imgHero} alt={p.nombre} width={48} height={48} className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-medium text-gray-900">{p.nombre}</div>
+                        <div className="text-xs text-gray-400">/proyectos/{p.slug}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">{p.lotes ?? "—"}</td>
+                  <td className="px-6 py-4">{p.areaDesde ? `${p.areaDesde} m²` : "—"}</td>
+                  <td className="px-6 py-4">
+                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium capitalize">{p.estado}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <button
+                      onClick={() => togglePublicado(p)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${p.publicado ? "bg-[#C8A23C]" : "bg-gray-200"}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${p.publicado ? "translate-x-6" : "translate-x-1"}`} />
+                    </button>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex gap-2">
+                      <Link href={`/admin/proyectos/${p.id}`} className="px-3 py-1 text-xs bg-[#16203A] text-white rounded-lg hover:bg-[#C8A23C] transition-colors">
+                        Editar
+                      </Link>
+                      <Link href={`/proyectos/${p.slug}`} target="_blank" className="px-3 py-1 text-xs border border-gray-200 text-gray-500 rounded-lg hover:text-[#16203A] transition-colors">
+                        Ver →
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }

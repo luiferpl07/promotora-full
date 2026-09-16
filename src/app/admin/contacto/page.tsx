@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Icon, LoadingBlock, PageHeader, Select, TableShell, Thead, EmptyBlock } from "@/components/admin/AdminUI";
 
 interface ContactRequest {
   id: string;
@@ -15,10 +14,10 @@ interface ContactRequest {
 }
 
 const ESTADOS = ["pendiente", "contactado", "cerrado"];
-const estadoColor: Record<string, "amber" | "blue" | "green"> = {
-  pendiente: "amber",
-  contactado: "blue",
-  cerrado: "green",
+const estadoColor: Record<string, string> = {
+  pendiente: "bg-yellow-100 text-yellow-800",
+  contactado: "bg-blue-100 text-blue-800",
+  cerrado: "bg-green-100 text-green-800",
 };
 
 export default function AdminContacto() {
@@ -28,11 +27,7 @@ export default function AdminContacto() {
   const [filterProyecto, setFilterProyecto] = useState("todos");
 
   useEffect(() => {
-    fetch("/api/contact-requests")
-      .then(r => r.json())
-      .then(d => setRequests(Array.isArray(d) ? d : []))
-      .catch(() => setRequests([]))
-      .finally(() => setLoading(false));
+    fetch("/api/contact-requests").then(r => r.json()).then(setRequests).finally(() => setLoading(false));
   }, []);
 
   const updateEstado = async (req: ContactRequest, estado: string) => {
@@ -58,64 +53,73 @@ export default function AdminContacto() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        kicker="Concierge"
-        title="Solicitudes de Visita"
-        subtitle={`${requests.length} solicitudes totales · ${requests.filter(r => r.estado === "pendiente").length} pendientes`}
-      />
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Solicitudes de Visita</h1>
+          <p className="text-gray-500 mt-1">{requests.length} solicitudes totales · {requests.filter(r => r.estado === "pendiente").length} pendientes</p>
+        </div>
+      </div>
 
       {/* Filtros */}
       <div className="flex gap-4 flex-wrap">
-        <Select value={filterEstado} onChange={e => setFilterEstado(e.target.value)} className="w-auto">
+        <select value={filterEstado} onChange={e => setFilterEstado(e.target.value)} className="border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#C8A23C]">
           <option value="todos">Todos los estados</option>
           {ESTADOS.map(e => <option key={e} value={e}>{e}</option>)}
-        </Select>
-        <Select value={filterProyecto} onChange={e => setFilterProyecto(e.target.value)} className="w-auto">
+        </select>
+        <select value={filterProyecto} onChange={e => setFilterProyecto(e.target.value)} className="border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#C8A23C]">
           {proyectos.map(p => <option key={p} value={p}>{p === "todos" ? "Todos los proyectos" : p}</option>)}
-        </Select>
+        </select>
       </div>
 
-      {loading ? (
-        <TableShell><tbody><tr><td><LoadingBlock /></td></tr></tbody></TableShell>
-      ) : filtered.length === 0 ? (
-        <TableShell><tbody><tr><td><EmptyBlock label="Sin solicitudes." /></td></tr></tbody></TableShell>
-      ) : (
-        <TableShell>
-          <Thead cols={["Fecha", "Nombre", "Teléfono", "Proyecto", "Visita", "Estado", "Acciones"]} />
-          <tbody className="divide-y divide-[var(--color-pf-navy)]/5">
-            {filtered.map(r => (
-              <tr key={r.id} className="hover:bg-[var(--color-pf-beige-light)]/60 transition-colors">
-                <td className="px-6 py-4 text-xs text-[var(--color-pf-navy)]/40 whitespace-nowrap">{new Date(r.createdAt).toLocaleDateString("es-CO")}</td>
-                <td className="px-6 py-4 font-medium text-[var(--color-pf-navy)]">{r.nombre}</td>
-                <td className="px-6 py-4">
-                  <a href={`tel:${r.telefono}`} className="text-[var(--color-pf-navy)] hover:text-[var(--color-pf-gold)] transition-colors">{r.telefono}</a>
-                </td>
-                <td className="px-6 py-4">{r.proyecto}</td>
-                <td className="px-6 py-4 text-xs">{r.fechaVisita || "—"}</td>
-                <td className="px-6 py-4">
-                  <select
-                    value={r.estado}
-                    onChange={e => updateEstado(r, e.target.value)}
-                    className={`text-xs px-2 py-1 rounded-full font-medium border-0 cursor-pointer capitalize ${{ amber: "bg-amber-100 text-amber-800", blue: "bg-blue-100 text-blue-800", green: "bg-emerald-100 text-emerald-800" }[estadoColor[r.estado]] || "bg-gray-100 text-gray-600"}`}
-                  >
-                    {ESTADOS.map(e => <option key={e} value={e}>{e}</option>)}
-                  </select>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex gap-2">
-                    <a href={`https://wa.me/${r.telefono.replace(/\D/g, "")}`} target="_blank" className="w-8 h-8 flex items-center justify-center bg-emerald-100 text-emerald-800 rounded-lg hover:bg-emerald-200 transition-colors" title="WhatsApp">
-                      <Icon name="external" className="w-4 h-4" />
-                    </a>
-                    <button onClick={() => handleDelete(r.id)} className="w-8 h-8 flex items-center justify-center border border-red-200 text-red-400 rounded-lg hover:bg-red-50 transition-colors" title="Eliminar">
-                      <Icon name="trash" className="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="p-12 text-center text-gray-400">Cargando...</div>
+        ) : filtered.length === 0 ? (
+          <div className="p-12 text-center text-gray-400">Sin solicitudes.</div>
+        ) : (
+          <table className="w-full text-left text-sm text-gray-600">
+            <thead className="bg-gray-50 text-gray-500 uppercase tracking-wider text-xs font-medium">
+              <tr>
+                <th className="px-6 py-4">Fecha</th>
+                <th className="px-6 py-4">Nombre</th>
+                <th className="px-6 py-4">Teléfono</th>
+                <th className="px-6 py-4">Proyecto</th>
+                <th className="px-6 py-4">Visita</th>
+                <th className="px-6 py-4">Estado</th>
+                <th className="px-6 py-4">Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </TableShell>
-      )}
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filtered.map(r => (
+                <tr key={r.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 text-xs text-gray-400 whitespace-nowrap">{new Date(r.createdAt).toLocaleDateString("es-CO")}</td>
+                  <td className="px-6 py-4 font-medium text-gray-900">{r.nombre}</td>
+                  <td className="px-6 py-4">
+                    <a href={`tel:${r.telefono}`} className="text-[#16203A] hover:text-[#C8A23C] transition-colors">{r.telefono}</a>
+                  </td>
+                  <td className="px-6 py-4">{r.proyecto}</td>
+                  <td className="px-6 py-4 text-xs">{r.fechaVisita || "—"}</td>
+                  <td className="px-6 py-4">
+                    <select
+                      value={r.estado}
+                      onChange={e => updateEstado(r, e.target.value)}
+                      className={`text-xs px-2 py-1 rounded-full font-medium border-0 cursor-pointer ${estadoColor[r.estado] || "bg-gray-100 text-gray-600"}`}
+                    >
+                      {ESTADOS.map(e => <option key={e} value={e}>{e}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex gap-2">
+                      <a href={`https://wa.me/${r.telefono.replace(/\D/g, "")}`} target="_blank" className="px-3 py-1 text-xs bg-green-100 text-green-800 rounded-lg hover:bg-green-200 transition-colors">WhatsApp</a>
+                      <button onClick={() => handleDelete(r.id)} className="px-3 py-1 text-xs border border-red-200 text-red-400 rounded-lg hover:bg-red-50 transition-colors">Eliminar</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }

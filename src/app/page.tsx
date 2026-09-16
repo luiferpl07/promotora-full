@@ -2,8 +2,6 @@
 
 import Navigation from "@/components/Navigation";
 import Hero from "@/components/Hero";
-import ScrollBadge from "@/components/ScrollBadge";
-import CloudsDrift from "@/components/CloudsDrift";
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -32,39 +30,13 @@ export default function Home() {
       if (Array.isArray(news)) setNovedades(news.filter((n: any) => n.publicado).slice(0, 3));
     }).catch(console.error);
   }, []);
-
-  // Keep the curved-text SVG's coordinate space pixel-matched to the viewport
-  // so the arc never stretches or skews on resize.
-  useEffect(() => {
-    const syncViewport = () => {
-      viewportRef.current = { w: window.innerWidth, h: window.innerHeight };
-      if (curvedTextSvgRef.current) {
-        curvedTextSvgRef.current.setAttribute(
-          "viewBox",
-          `0 0 ${window.innerWidth} ${window.innerHeight}`
-        );
-      }
-    };
-    syncViewport();
-    window.addEventListener("resize", syncViewport);
-    return () => window.removeEventListener("resize", syncViewport);
-  }, []);
-
   const archSectionRef = useRef<HTMLDivElement>(null);
   const archMaskRef = useRef<HTMLDivElement>(null);
-  const curvedTextRef = useRef<HTMLDivElement>(null);
-  const curvedTextSvgRef = useRef<SVGSVGElement>(null);
-  const curvedTextPathRef = useRef<SVGPathElement>(null);
-  const curvedTextElRef = useRef<SVGTextElement>(null);
-  const viewportRef = useRef({ w: 0, h: 0 });
   const horizontalScrollRef = useRef<HTMLDivElement>(null);
   const locationSectionRef = useRef<HTMLDivElement>(null);
   const locationTextRef = useRef<HTMLDivElement>(null);
-  const palmLeftRef = useRef<HTMLDivElement>(null);
-  const palmRightRef = useRef<HTMLDivElement>(null);
-  const ctaSectionRef = useRef<HTMLDivElement>(null);
-  const ctaMaskRef = useRef<HTMLDivElement>(null);
-  const ctaContentRef = useRef<HTMLDivElement>(null);
+  const locationImgRef = useRef<HTMLDivElement>(null);
+  const scrollProgressRef = useRef<HTMLSpanElement>(null);
 
   useGSAP(() => {
     // 0. Smooth Background Color Transitions
@@ -75,8 +47,8 @@ export default function Home() {
         trigger: sec,
         start: "top 50%",
         end: "bottom 50%",
-        onEnter: () => gsap.to(document.body, { backgroundColor: sec.dataset.bgColor, duration: 1 }),
-        onEnterBack: () => gsap.to(document.body, { backgroundColor: sec.dataset.bgColor, duration: 1 }),
+        onEnter: () => gsap.to("body", { backgroundColor: sec.dataset.bgColor, duration: 1 }),
+        onEnterBack: () => gsap.to("body", { backgroundColor: sec.dataset.bgColor, duration: 1 }),
       });
     });
 
@@ -92,135 +64,39 @@ export default function Home() {
       });
     });
 
-    // 1. Curved "PROMOTORAS FULL" title.
-    // It lives on a fixed layer so it can already be on screen while the hero
-    // is still scrolling away (entry is driven by the hero), and then scales
-    // up while wrapping tighter around its arc as the dome rises beneath it
-    // (growth is driven by the pinned arch), glowing gold before it burns out.
-    const curvedState = { percent: 5, entry: 0 };
-
-    const renderCurvedTitle = () => {
-      const path = curvedTextPathRef.current;
-      const text = curvedTextElRef.current;
-      if (!path || !text) return;
-
-      const w = viewportRef.current.w || window.innerWidth;
-      const h = viewportRef.current.h || window.innerHeight;
-
-      // The journey finishes before the dome (5%→150%) covers the screen.
-      const t = gsap.utils.clamp(0, 1, (curvedState.percent - 5) / 90);
-
-      // Centre it in whatever part of this section is actually on screen, so
-      // it reads as centred while the section is still sliding up over the
-      // hero, and settles at the true viewport centre once it pins. Coords are
-      // section-local (the SVG spans the section), hence subtracting rect.top.
-      const rectTop = archSectionRef.current
-        ? archSectionRef.current.getBoundingClientRect().top
-        : 0;
-      const bandTop = Math.max(0, rectTop);
-      const bandHeight = Math.max(1, h - bandTop);
-
-      // Starts dead centre like a hero title and climbs to the upper third
-      // as it grows; the radius tightens so the wrap deepens with it.
-      const cx = w / 2;
-      const apexY = bandTop + bandHeight * (0.5 - 0.25 * t) - rectTop;
-      const baseRadius = h * (1.3 - 0.62 * t);
-      // Blend in extra radius (i.e. flatten the arc) with an exponential
-      // decay instead of a fixed window — there's no boundary for the
-      // scroll's own easing to collide with, so it can never look like it
-      // snaps: the title starts essentially flat and eases continuously
-      // into the full wrap as the dome rises.
-      const radius = baseRadius * (1 + 16 * Math.exp(-4 * t));
-      const cy = apexY + radius;
-
-      const halfSpan = 1.35; // ~77° of path either side — longer than the text
-      const dx = radius * Math.sin(halfSpan);
-      const dy = radius * Math.cos(halfSpan);
-      path.setAttribute(
-        "d",
-        `M ${cx - dx} ${cy - dy} A ${radius} ${radius} 0 0 1 ${cx + dx} ${cy - dy}`
-      );
-
-      const fontSize = w * (0.027 + 0.075 * t);
-      text.style.fontSize = `${fontSize}px`;
-      text.style.letterSpacing = `${fontSize * 0.06}px`;
-
-      // Dissolve must start while the text is still clear of the rising
-      // rim, otherwise the beige simply hides it before it can burn out.
-      const glow = gsap.utils.clamp(0, 1, (t - 0.2) / 0.4);
-      const dissolve = gsap.utils.clamp(0, 1, (t - 0.62) / 0.23);
-
-      text.style.opacity = String(curvedState.entry * (1 - dissolve));
-      text.style.filter =
-        `drop-shadow(0 0 ${6 + glow * 30}px rgba(200,162,60,${0.25 + glow * 0.6})) blur(${dissolve * 12}px)`;
-    };
-    renderCurvedTitle();
-
-    // 1a. Entry — fades the title in over the back half of the hero scroll,
-    // so it is already on screen before the arch section reaches the top.
-    const heroSection = document.querySelector('[data-section-index="0"]');
-    if (heroSection) {
-      ScrollTrigger.create({
-        trigger: heroSection,
-        start: "top top",
-        end: "bottom top",
-        scrub: true,
-        onUpdate: (self) => {
-          curvedState.entry = gsap.utils.clamp(0, 1, (self.progress - 0.5) / 0.3);
-          renderCurvedTitle();
-        },
-      });
-    }
-
-    // 1b. Smooth Arch Reveal (Pinned Clip-Path) — also drives the title growth
-    if (archSectionRef.current && archMaskRef.current) {
-      const archProgress = { percent: 5 };
-      const updateArch = () => {
-        const p = archProgress.percent;
-        if (archMaskRef.current) {
-          archMaskRef.current.style.clipPath = `circle(${p}% at 50% 100%)`;
+    // 0.6 Global Scroll Progress (Accurate 0-100)
+    const updateScrollProgress = () => {
+      if (scrollProgressRef.current) {
+        const max = ScrollTrigger.maxScroll(window);
+        const current = window.scrollY || document.documentElement.scrollTop;
+        let progress = 0;
+        if (max > 0) {
+          progress = Math.min(100, Math.max(0, Math.round((current / max) * 100)));
         }
-        curvedState.percent = p;
-        renderCurvedTitle();
-      };
-      updateArch();
-      gsap.to(archProgress, {
-        percent: 150,
-        ease: "power2.inOut",
-        onUpdate: updateArch,
-        scrollTrigger: {
-          trigger: archSectionRef.current,
-          start: "top top",
-          end: "+=80%",
-          pin: true,
-          scrub: 1,
-          refreshPriority: 10,
-        },
-      });
-    }
+        scrollProgressRef.current.textContent = progress.toString().padStart(2, '0');
+      }
+    };
+    
+    // Use GSAP ticker to smoothly update the number on every frame while scrolling
+    gsap.ticker.add(updateScrollProgress);
 
-    // 1.5. CTA Reveal (Pinned Clip-Path, inverse of the Arch reveal).
-    // The circle grows first; the headline only fades in once it's fully
-    // inside the navy circle, so it's never sliced by the growing edge.
-    if (ctaSectionRef.current && ctaMaskRef.current && ctaContentRef.current) {
-      gsap.set(ctaContentRef.current, { opacity: 0, y: 24 });
-      const ctaTl = gsap.timeline({
-        scrollTrigger: {
-          trigger: ctaSectionRef.current,
-          start: "top top",
-          end: "+=45%",
-          pin: true,
-          scrub: 0.6,
-          refreshPriority: -1,
-        },
-      });
-      ctaTl
-        .fromTo(
-          ctaMaskRef.current,
-          { clipPath: "circle(8% at 50% 0%)" },
-          { clipPath: "circle(150% at 50% 0%)", ease: "power1.inOut", duration: 1 }
-        )
-        .to(ctaContentRef.current, { opacity: 1, y: 0, ease: "power2.out", duration: 0.5 }, 0.5);
+    // 1. Smooth Arch Reveal (Pinned Clip-Path)
+    if (archSectionRef.current && archMaskRef.current) {
+      gsap.fromTo(
+        archMaskRef.current,
+        { clipPath: "circle(5% at 50% 100%)" },
+        {
+          clipPath: "circle(150% at 50% 100%)",
+          ease: "power2.inOut",
+          scrollTrigger: {
+            trigger: archSectionRef.current,
+            start: "top top",
+            end: "+=80%",
+            pin: true,
+            scrub: 1,
+          },
+        }
+      );
     }
 
     // 2. Parallax & Image Zoom (Scale Progressive)
@@ -242,47 +118,30 @@ export default function Home() {
       );
     });
 
-    // 3. Parallax Proyectos Destacados (Text & Palms)
-    if (locationSectionRef.current && locationTextRef.current) {
+    // 3. Parallax Location Text & Image
+    if (locationSectionRef.current && locationTextRef.current && locationImgRef.current) {
       ScrollTrigger.create({
         trigger: locationSectionRef.current,
         start: "top top",
         end: "+=150%",
         pin: locationTextRef.current,
         scrub: true,
-        refreshPriority: 9,
       });
 
-      if (palmLeftRef.current) {
-        gsap.to(palmLeftRef.current, {
-          yPercent: -20,
-          rotation: -3,
+      gsap.fromTo(
+        locationImgRef.current,
+        { yPercent: 60 },
+        {
+          yPercent: -30,
           ease: "none",
           scrollTrigger: {
             trigger: locationSectionRef.current,
-            start: "top top",
-            end: "+=150%",
+            start: "top bottom",
+            end: "bottom top",
             scrub: true,
           },
-        });
-      }
-      
-      if (palmRightRef.current) {
-        gsap.fromTo(palmRightRef.current, 
-          { yPercent: 10, rotation: 2 },
-          {
-            yPercent: -30,
-            rotation: -2,
-            ease: "none",
-            scrollTrigger: {
-              trigger: locationSectionRef.current,
-              start: "top top",
-              end: "+=150%",
-              scrub: true,
-            },
-          }
-        );
-      }
+        }
+      );
     }
 
     // 4. Elegant Text Reveals (Stagger Slide from Bottom)
@@ -305,41 +164,26 @@ export default function Home() {
       );
     });
 
-  }, { scope: container });
-
-  // 5. Horizontal Scroll Projects
-  const horizontalSectionRef = useRef<HTMLElement>(null);
-  useEffect(() => {
-    if (!horizontalSectionRef.current || !horizontalScrollRef.current || proyectos.length < 1) return;
-
-    const ctx = gsap.context(() => {
-      const sections = gsap.utils.toArray(horizontalScrollRef.current!.children) as HTMLElement[];
-
+    // 5. Horizontal Scroll Projects
+    if (horizontalScrollRef.current) {
+      const sections = gsap.utils.toArray(horizontalScrollRef.current.children);
       gsap.to(sections, {
         xPercent: -100 * (sections.length - 1),
         ease: "none",
         scrollTrigger: {
-          trigger: horizontalSectionRef.current,
+          trigger: horizontalScrollRef.current,
           pin: true,
           scrub: 1,
-          snap: sections.length > 1 ? 1 / (sections.length - 1) : undefined,
-          start: () => "top top",
+          snap: 1 / (sections.length - 1),
           end: () => "+=" + window.innerWidth * sections.length,
-          invalidateOnRefresh: true,
-          anticipatePin: 1,
         },
       });
+    }
 
-      // Wait for pin-spacers from sections above to settle, then recalculate
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          ScrollTrigger.refresh();
-        });
-      });
-    });
-
-    return () => ctx.revert();
-  }, [proyectos]);
+    return () => {
+      gsap.ticker.remove(updateScrollProgress);
+    };
+  }, { scope: container });
 
 
 
@@ -354,7 +198,46 @@ export default function Home() {
   return (
     <div ref={container} className="bg-[var(--color-pf-bg)] relative transition-colors duration-1000">
       <Navigation />
-      <ScrollBadge />
+
+      {/* Global Fixed Badge - Travels across the whole page */}
+      <div className="fixed top-24 left-8 md:top-32 md:left-12 z-50 mix-blend-difference text-white flex flex-col items-center gap-6 pointer-events-none">
+        <div className="relative w-28 h-28 md:w-36 md:h-36">
+          <svg viewBox="0 0 100 100" className="w-full h-full text-current animate-[spin_15s_linear_infinite]">
+            <path id="circlePath" d="M 50, 50 m -35, 0 a 35,35 0 1,1 70,0 a 35,35 0 1,1 -70,0" fill="none"/>
+            <text fontSize="10" letterSpacing="4.5" fill="currentColor" className="font-mono uppercase">
+              <textPath href="#circlePath" startOffset="0%">PROMOTORAS FULL • PROMOTORAS FULL • </textPath>
+            </text>
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div 
+              className="w-10 h-10 md:w-14 md:h-14 bg-current"
+              style={{
+                maskImage: 'url(/assets/real/logo-f.webp)',
+                maskSize: 'contain',
+                maskPosition: 'center',
+                maskRepeat: 'no-repeat',
+                WebkitMaskImage: 'url(/assets/real/logo-f.webp)',
+                WebkitMaskSize: 'contain',
+                WebkitMaskPosition: 'center',
+                WebkitMaskRepeat: 'no-repeat',
+              }}
+            />
+          </div>
+        </div>
+        <div className="flex flex-col items-center gap-4 mt-8">
+          <div className="w-[1px] h-10 bg-current opacity-40"></div>
+          <span ref={scrollProgressRef} className="text-[12px] tracking-[0.2em] font-sans font-bold">
+            00
+          </span>
+          <div className="w-[1px] h-48 md:h-64 bg-current opacity-10"></div>
+          <span className="text-[9px] tracking-[0.4em] font-mono uppercase" style={{ writingMode: 'vertical-rl' }}>
+            SCROLL
+          </span>
+          <svg width="10" height="30" viewBox="0 0 10 30" fill="none" stroke="currentColor" strokeWidth="1" className="opacity-60">
+            <path d="M5 0 L5 30 M1 26 L5 30 L9 26" />
+          </svg>
+        </div>
+      </div>
 
       <main className="overflow-x-hidden font-sans relative z-10">
         <div data-bg-color="var(--color-pf-bg)" data-section-index="0">
@@ -363,30 +246,9 @@ export default function Home() {
 
         {/* 1. Dynamic Arch Section: ¿Por qué elegirnos? */}
         <section data-section-index="1" data-bg-color="var(--color-pf-navy)" ref={archSectionRef} className="h-screen w-full relative bg-[var(--color-pf-navy)] overflow-hidden">
-          {/* Curved "Promotoras Full" title. Sits above the navy backdrop but
-              below the beige mask (z-10) so the rising dome swallows it. It is
-              positioned against the viewport, so it is already centred in the
-              navy band while this section is still scrolling up over the hero. */}
-          <div ref={curvedTextRef} className="absolute inset-0 z-0 pointer-events-none">
-            <svg ref={curvedTextSvgRef} className="w-full h-full" preserveAspectRatio="none">
-              <path ref={curvedTextPathRef} id="archCurvePath" fill="none" />
-              <text
-                ref={curvedTextElRef}
-                textAnchor="middle"
-                className="font-serif"
-                style={{ fontSize: "20px", letterSpacing: "1px", opacity: 0 }}
-              >
-                <textPath href="#archCurvePath" xlinkHref="#archCurvePath" startOffset="50%">
-                  <tspan fill="#F2EDE3">PROMOTORAS </tspan>
-                  <tspan fill="#C8A23C">FULL</tspan>
-                </textPath>
-              </text>
-            </svg>
-          </div>
-
-          <div
-            ref={archMaskRef}
-            className="absolute inset-0 z-10 bg-[var(--color-pf-beige)] flex flex-col items-center justify-center pt-20"
+          <div 
+            ref={archMaskRef} 
+            className="absolute inset-0 bg-[var(--color-pf-beige)] flex flex-col items-center justify-center pt-20"
           >
             <h2 data-reveal className="font-serif text-[clamp(28px,5vw,64px)] uppercase tracking-[0.2em] text-[var(--color-pf-navy)] text-center max-w-[1000px] leading-[1.2] font-light px-6 mb-4">
               ¿Por qué elegirnos?
@@ -410,64 +272,35 @@ export default function Home() {
               </div>
             </div>
           </div>
-
         </section>
 
         {/* 2. Proyectos Destacados (Parallax Intro) */}
-        <section data-section-index="2" data-bg-color="#5F8FC4" ref={locationSectionRef} className="h-[250vh] w-full bg-[linear-gradient(to_bottom,var(--color-pf-beige)_0%,#3E6EA0_14%,#8EB6DC_55%,var(--color-pf-beige)_100%)] relative isolate">
-          <div ref={locationTextRef} className="h-screen w-full flex flex-col items-center justify-center absolute top-0 left-0 z-10 pointer-events-none">
-
-            <CloudsDrift className="z-0 opacity-90" />
-
-            {/* Left Palm Tree — reduced size on mobile so it frames, not covers */}
-            <div
-              ref={palmLeftRef}
-              className="absolute top-[-2%] left-[-8%] w-[55vw] md:w-[42vw] h-[52vh] md:h-[130vh] opacity-55 md:opacity-100 z-0 origin-bottom-left mix-blend-multiply pointer-events-none"
+        <section data-section-index="2" data-bg-color="var(--color-pf-beige)" ref={locationSectionRef} className="h-[250vh] w-full bg-[var(--color-pf-beige)] relative">
+          <div ref={locationTextRef} className="h-screen w-full flex flex-col items-center justify-center absolute top-0 left-0 z-10 pointer-events-none px-6">
+            <h2 className="font-serif text-[clamp(50px,12vw,200px)] uppercase tracking-tight leading-[0.8] font-light text-[var(--color-pf-navy)] drop-shadow-2xl opacity-90">
+              Proyectos
+            </h2>
+            <h2 className="font-script text-[clamp(80px,15vw,250px)] leading-[0.5] text-[var(--color-pf-gold)] mt-[-20px] md:mt-[-40px] drop-shadow-2xl z-20">
+              Destacados
+            </h2>
+          </div>
+          
+          <div className="absolute inset-0 overflow-hidden z-0">
+            <div 
+              ref={locationImgRef}
+              className="absolute w-[90%] md:w-[60%] h-[70vh] md:h-[90vh] top-[50vh] left-[5%] md:left-[20%] overflow-hidden shadow-2xl rounded-lg"
             >
-              <div className="w-full h-full relative sway-animation origin-bottom-left">
-                <Image src="/assets/palms/palm_left_v2.png" alt="Palmera" fill className="object-contain object-top object-left" />
-              </div>
-            </div>
-
-            {/* Right Palm Tree — smaller on mobile, positioned lower */}
-            <div
-              ref={palmRightRef}
-              className="absolute bottom-[-5%] right-[-8%] w-[50vw] md:w-[45vw] h-[35vh] md:h-[70vh] opacity-45 md:opacity-90 z-0 origin-bottom-right pointer-events-none"
-            >
-              <div className="w-full h-full relative sway-animation-alt origin-bottom-right">
-                <Image src="/assets/palms/palm_bottom_right.png" alt="Palmera" fill className="object-contain object-bottom object-right" />
-              </div>
-            </div>
-
-            {/* Text block — tighter on mobile */}
-            <div className="relative z-10 flex flex-col items-center px-6 mt-0 md:mt-[-10vh]">
-              {/* Eyebrow line — mobile only */}
-              <div className="flex items-center gap-3 mb-4 md:hidden">
-                <div className="w-6 h-[1px] bg-[var(--color-pf-gold)]/50" />
-                <span className="font-mono text-[8px] tracking-[0.4em] uppercase text-[var(--color-pf-gold)]/80">Lotes Campestres</span>
-                <div className="w-6 h-[1px] bg-[var(--color-pf-gold)]/50" />
-              </div>
-
-              <h2 className="font-serif text-[clamp(34px,9vw,200px)] uppercase tracking-tight leading-[0.85] font-light text-[var(--color-pf-beige)] drop-shadow-2xl opacity-95 text-center">
-                Proyectos
-              </h2>
-              <h2 className="font-script text-[clamp(46px,11vw,250px)] leading-[0.6] text-[var(--color-pf-gold)] mt-[-8px] md:mt-[-40px] drop-shadow-2xl text-center">
-                Destacados
-              </h2>
-
-              <div className="mt-8 md:mt-16 max-w-[340px] md:max-w-[450px] text-center text-[var(--color-pf-beige)] text-[9px] md:text-[11px] uppercase tracking-[0.2em] md:tracking-[0.25em] leading-relaxed font-mono opacity-65 px-4 md:px-0">
-                Inspirado en la naturaleza y diseñado para tu bienestar. Lotes campestres exclusivos que combinan privacidad y conexión total con el entorno.
-              </div>
+              <div 
+                className="parallax-zoom w-full h-full bg-cover bg-center"
+                style={{ backgroundImage: "url('/assets/real/Escena-4.png')" }}
+              />
             </div>
           </div>
-          {/* Gradient fade at bottom to smooth transition to next section */}
-          <div className="absolute bottom-0 left-0 w-full h-64 pointer-events-none z-20" style={{ background: 'linear-gradient(to bottom, transparent, var(--color-pf-bg))' }} />
         </section>
 
-
         {/* 3. Horizontal Scroll Projects Grid */}
-        <section ref={horizontalSectionRef} data-section-index="3" data-bg-color="var(--color-pf-bg)" className="bg-[var(--color-pf-bg)] text-[var(--color-pf-navy)] overflow-hidden h-screen">
-          <div className="flex flex-row h-full" style={{ width: `${Math.max(1, proyectos.length) * 100}vw` }} ref={horizontalScrollRef}>
+        <section data-section-index="3" data-bg-color="var(--color-pf-bg)" className="bg-[var(--color-pf-bg)] text-[var(--color-pf-navy)] overflow-hidden py-32 border-t border-[rgba(22,32,58,.1)]">
+          <div className="flex flex-row h-[85vh] min-h-[650px]" style={{ width: `${Math.max(1, proyectos.length) * 100}vw` }} ref={horizontalScrollRef}>
             {proyectos.map((p, i) => {
               const num = String(i + 1).padStart(2, '0');
               return (
@@ -547,23 +380,18 @@ export default function Home() {
         </section>
 
         {/* 6. Elegant CTA / Footer Typography */}
-        <section data-section-index="6" data-bg-color="var(--color-pf-bg)" ref={ctaSectionRef} className="h-screen w-full relative bg-[var(--color-pf-bg)] overflow-hidden">
-          <div
-            ref={ctaMaskRef}
-            className="absolute inset-0 bg-[var(--color-pf-navy)] flex flex-col items-center justify-center px-6"
-          >
-            <div ref={ctaContentRef} className="max-w-[1400px] mx-auto text-center relative z-10">
-              <h2 className="font-serif text-[clamp(36px,7vw,90px)] uppercase tracking-tight leading-[1] font-light text-white">
-                ¿Deseas reservar <br/>
-                <span className="font-script text-[var(--color-pf-gold)] text-[clamp(70px,12vw,140px)] lowercase -mt-4 block drop-shadow-sm">tu lote?</span>
-              </h2>
-              <p className="mt-12 text-sm md:text-base tracking-[0.1em] uppercase font-light text-white/70 max-w-lg mx-auto leading-relaxed">
-                Conoce los pasos que debes realizar para adquirir el lote de tus sueños.
-              </p>
-              <Link href="/contacto" className="mt-12 mx-auto w-max px-12 py-5 rounded-full bg-[var(--color-pf-gold)] !text-[var(--color-pf-navy)] text-[11px] tracking-[0.2em] uppercase font-semibold hover:bg-white transition-colors duration-500 shadow-xl flex items-center justify-center">
-                <span>Más Información</span>
-              </Link>
-            </div>
+        <section data-section-index="6" data-bg-color="var(--color-pf-bg)" className="bg-[var(--color-pf-bg)] text-[var(--color-pf-navy)] pt-40 pb-12 overflow-hidden relative border-t border-[rgba(22,32,58,.1)] flex flex-col justify-between">
+          <div className="max-w-[1400px] mx-auto px-6 text-center relative z-10 flex-grow flex flex-col justify-center">
+            <h2 data-reveal className="font-serif text-[clamp(36px,7vw,90px)] uppercase tracking-tight leading-[1] font-light">
+              ¿Deseas reservar <br/>
+              <span className="font-script text-[var(--color-pf-gold)] text-[clamp(70px,12vw,140px)] lowercase -mt-4 block drop-shadow-sm">tu lote?</span>
+            </h2>
+            <p className="mt-12 text-sm md:text-base tracking-[0.1em] uppercase font-light opacity-80 max-w-lg mx-auto leading-relaxed">
+              Conoce los pasos que debes realizar para adquirir el lote de tus sueños.
+            </p>
+            <Link href="/contacto" className="mt-12 mx-auto w-max px-12 py-5 rounded-full bg-[var(--color-pf-navy)] !text-white text-[11px] tracking-[0.2em] uppercase font-semibold hover:bg-[var(--color-pf-gold)] hover:!text-[var(--color-pf-navy)] transition-colors duration-500 shadow-xl flex items-center justify-center">
+              <span>Más Información</span>
+            </Link>
           </div>
         </section>
           <Footer />

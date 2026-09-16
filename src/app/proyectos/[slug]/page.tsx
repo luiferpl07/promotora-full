@@ -2,7 +2,6 @@
 
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
-import ScrollBadge from "@/components/ScrollBadge";
 import { useRef, useState, useEffect } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -10,7 +9,6 @@ import { useGSAP } from "@gsap/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import ProjectShowroom, { ShowroomLot } from "@/components/ProjectShowroom";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -23,16 +21,14 @@ interface Project {
   estado: string; logo: string | null; imgHero: string | null; ubicacionTexto: string | null;
   googleMapsUrl: string | null; amenidades: string | null; publicado: boolean;
   images: ProjectImage[];
-  planoUrl: string | null;
 }
 
 export default function ProjectDetail() {
   const params = useParams();
   const container = useRef<HTMLDivElement>(null);
+  const scrollProgressRef = useRef<HTMLSpanElement>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
-  const [lots, setLots] = useState<ShowroomLot[]>([]);
-  const [mapAspectRatio, setMapAspectRatio] = useState<number | null>(null);
 
   useEffect(() => {
     fetch(`/api/projects?slug=${params.slug}`)
@@ -47,29 +43,18 @@ export default function ProjectDetail() {
       .finally(() => setLoading(false));
   }, [params.slug]);
 
-  useEffect(() => {
-    if (!project?.id) return;
-    fetch(`/api/projects/${project.id}/lots`)
-      .then(r => r.json())
-      .then(data => { if (Array.isArray(data)) setLots(data); })
-      .catch(console.error);
-  }, [project?.id]);
-
-  useEffect(() => {
-    if (!project?.planoUrl) return;
-    const img = new window.Image();
-    img.onload = () => setMapAspectRatio(img.naturalHeight / img.naturalWidth);
-    img.src = project.planoUrl;
-  }, [project?.planoUrl]);
-
-  // Hero animation — runs once on mount
-  useEffect(() => {
-    gsap.fromTo(".hero-title-line", { y: 100, opacity: 0 }, { y: 0, opacity: 1, duration: 1.5, ease: "power4.out", stagger: 0.2 });
-    gsap.fromTo(".hero-script", { opacity: 0, scale: 0.95 }, { opacity: 1, scale: 1, duration: 2, ease: "power2.out", delay: 0.4 });
-  }, []);
-
   useGSAP(() => {
     if (!project) return;
+    const updateScrollProgress = () => {
+      if (scrollProgressRef.current) {
+        const max = ScrollTrigger.maxScroll(window);
+        const current = window.scrollY || document.documentElement.scrollTop;
+        scrollProgressRef.current.textContent = max > 0 ? Math.min(100, Math.round((current / max) * 100)).toString().padStart(2, '0') : '00';
+      }
+    };
+    gsap.ticker.add(updateScrollProgress);
+
+    gsap.fromTo(".hero-title-line", { y: 100, opacity: 0 }, { y: 0, opacity: 1, duration: 1.5, ease: "power4.out", stagger: 0.15 });
 
     const revealElements = gsap.utils.toArray("[data-reveal]") as HTMLElement[];
     revealElements.forEach((el) => {
@@ -83,31 +68,30 @@ export default function ProjectDetail() {
         gsap.fromTo(img, { scale: 1, y: "-10%" }, { scale: 1.15, y: "10%", ease: "none", scrollTrigger: { trigger: el, start: "top bottom", end: "bottom top", scrub: true } });
       }
     });
+
+    return () => gsap.ticker.remove(updateScrollProgress);
   }, { scope: container, dependencies: [project] });
 
   if (loading) return <div className="min-h-screen bg-[var(--color-pf-bg)] flex items-center justify-center">Cargando proyecto...</div>;
   if (!project) return <div className="min-h-screen bg-[var(--color-pf-bg)] flex items-center justify-center">Proyecto no encontrado.</div>;
 
-  const amenidadesArr: { texto: string; foto?: string }[] = project.amenidades
-    ? JSON.parse(project.amenidades).map((a: any) => typeof a === "string" ? { texto: a } : a)
-    : [];
+  const amenidadesArr = project.amenidades ? JSON.parse(project.amenidades) : [];
   const galeria = project.images.filter(i => i.tipo === "galeria" || i.tipo === "amenidad");
   const masterplan = project.images.find(i => i.tipo === "masterplan");
 
   return (
     <div ref={container} className="bg-[var(--color-pf-bg)]">
       <Navigation customLogo={project.logo || undefined} />
-      <ScrollBadge />
 
       <main className="overflow-x-hidden font-sans relative z-10 text-[var(--color-pf-dark)]">
-
+        
         {/* 1. Hero Inmersivo */}
         <section className="relative min-h-[100vh] flex flex-col items-center justify-center pt-32 pb-24 px-8 overflow-hidden bg-[var(--color-pf-navy)]">
           <div data-parallax className="absolute inset-0 z-0">
              <div data-zoom className="absolute inset-[-10%] w-[120%] h-[120%]">
                {project.imgHero && <Image src={project.imgHero} alt={project.nombre} fill className="object-cover opacity-80" priority />}
              </div>
-             <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-black/80"></div>
+             <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-[var(--color-pf-bg)]"></div>
           </div>
           
           <div className="relative z-10 text-center w-full max-w-[1400px] mx-auto flex flex-col items-center mt-auto pb-32">
@@ -117,9 +101,19 @@ export default function ProjectDetail() {
               </span>
             </div>
             
-            <h1 className="font-serif text-[clamp(50px,10vw,160px)] uppercase tracking-tighter leading-[0.85] font-normal scale-y-110 text-white drop-shadow-2xl">
+            <h1 className="font-serif text-[clamp(50px,10vw,160px)] uppercase tracking-tighter leading-[0.85] font-normal scale-y-110 text-white">
               <div className="overflow-hidden"><div className="hero-title-line">{project.nombre}</div></div>
             </h1>
+          </div>
+          
+          <div className="absolute bottom-12 left-12 flex flex-col items-center gap-4 text-white">
+             <div className="w-[1px] h-10 bg-current opacity-40"></div>
+             <span ref={scrollProgressRef} className="text-[12px] tracking-[0.2em] font-sans font-bold">00</span>
+             <div className="w-[1px] h-48 md:h-64 bg-current opacity-20"></div>
+             <span className="text-[9px] tracking-[0.4em] font-mono uppercase" style={{ writingMode: 'vertical-rl' }}>SCROLL</span>
+             <svg width="10" height="30" viewBox="0 0 10 30" fill="none" stroke="currentColor" strokeWidth="1" className="opacity-60">
+               <path d="M5 0 L5 30 M1 26 L5 30 L9 26" />
+             </svg>
           </div>
         </section>
 
@@ -177,19 +171,24 @@ export default function ProjectDetail() {
           </div>
         </section>
 
-        {/* 4. Galería */}
+        {/* 4. Galería y Amenidades */}
         {galeria.length > 0 && (
-          <section className="py-[clamp(80px,10vw,150px)] px-6 md:px-12 bg-[#F9F7F3] border-t border-[var(--color-pf-gold)]/20">
-            <div className="max-w-[1500px] mx-auto text-center mb-16">
-               <div data-reveal className="flex justify-center items-baseline gap-[16px] text-[10px] tracking-[0.34em] uppercase text-[rgba(22,32,58,.45)] mb-[26px]">
-                 <span className="text-[var(--color-pf-gold)]">Galería</span>
-                 <span>Renders del Proyecto</span>
-               </div>
+          <section className="py-[clamp(80px,10vw,150px)] px-6 md:px-12 bg-[#F9F7F3] border-y border-[var(--color-pf-gold)]/20">
+            <div className="max-w-[1500px] mx-auto text-center mb-24">
                <h2 data-reveal className="font-serif font-light text-[clamp(36px,5vw,70px)] leading-[1] tracking-[-0.02em] text-[var(--color-pf-navy)]">
                   Espacios Diseñados para Ti
                </h2>
+               {amenidadesArr.length > 0 && (
+                 <div data-reveal className="mt-8 flex flex-wrap justify-center gap-4 max-w-[800px] mx-auto">
+                    {amenidadesArr.map((am: string, i: number) => (
+                      <span key={i} className="px-4 py-2 bg-white border border-[var(--color-pf-gold)]/20 rounded-full text-xs uppercase tracking-widest text-[var(--color-pf-navy)] shadow-sm">
+                        {am}
+                      </span>
+                    ))}
+                 </div>
+               )}
             </div>
-
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-[1500px] mx-auto">
               {galeria.map((img, i) => (
                 <div key={i} data-parallax className={`overflow-hidden relative w-full aspect-video ${i % 3 === 0 ? 'md:col-span-2 aspect-[21/9]' : ''}`}>
@@ -202,84 +201,23 @@ export default function ProjectDetail() {
           </section>
         )}
 
-        {/* 4.5 Amenidades */}
-        {amenidadesArr.length > 0 && (
-          <section className="py-[clamp(80px,10vw,150px)] px-6 md:px-12 bg-[#F9F7F3] border-b border-[var(--color-pf-gold)]/20 text-center">
-            <div className="max-w-[900px] mx-auto">
-               <div data-reveal className="flex justify-center items-baseline gap-[16px] text-[10px] tracking-[0.34em] uppercase text-[rgba(22,32,58,.45)] mb-[26px]">
-                 <span className="text-[var(--color-pf-gold)]">Estilo de Vida</span>
-                 <span>Lo que Incluye</span>
-               </div>
-               <h2 data-reveal className="font-serif font-light text-[clamp(36px,5vw,70px)] leading-[1] tracking-[-0.02em] mb-10 text-[var(--color-pf-navy)]">
-                  Amenidades
-               </h2>
-               <p data-reveal className="text-[15px] md:text-[17px] leading-[1.8] text-[var(--color-pf-dark)]/70 font-light mb-12 max-w-[65ch] mx-auto">
-                  Espacios pensados para que la comodidad, la seguridad y el esparcimiento se unan y enriquezcan tu día a día dentro del proyecto.
-               </p>
-               <div data-reveal className="flex flex-wrap justify-center gap-4">
-                  {amenidadesArr.map((am, i) => (
-                    <span key={i} className="flex items-center gap-2 pl-2 pr-4 py-2 bg-white border border-[var(--color-pf-gold)]/20 rounded-full text-xs uppercase tracking-widest text-[var(--color-pf-navy)] shadow-sm">
-                      {am.foto ? (
-                        <span className="w-6 h-6 rounded-full overflow-hidden relative flex-shrink-0">
-                          <Image src={am.foto} alt="" fill className="object-cover" />
-                        </span>
-                      ) : (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-pf-gold)] flex-shrink-0" />
-                      )}
-                      {am.texto}
-                    </span>
-                  ))}
-               </div>
-            </div>
-          </section>
-        )}
-
-        {/* 5. Showroom Interactivo / Plano Maestro */}
-        {(() => {
-          const hasShowroom =
-            project.planoUrl && mapAspectRatio !== null && lots.length > 0;
-
-          if (!hasShowroom && !masterplan) return null;
-
-          return (
-            <section className={`py-[clamp(100px,15vw,220px)] px-6 md:px-12 ${hasShowroom ? "max-w-[1500px]" : "max-w-[1200px]"} mx-auto text-center`}>
-              <div data-reveal className="flex justify-center items-baseline gap-[16px] text-[10px] tracking-[0.34em] uppercase text-[rgba(22,32,58,.45)] mb-[26px]">
-                <span className="text-[var(--color-pf-gold)]">Distribución</span>
-                <span>Lotes del Proyecto</span>
-              </div>
-              <h2 data-reveal className="font-serif font-light text-[clamp(36px,5vw,70px)] leading-[1] tracking-[-0.02em] mb-16 text-[var(--color-pf-navy)]">
-                {hasShowroom ? "Explora el Proyecto" : "Plano Maestro"}
-              </h2>
-
-              {hasShowroom ? (
-                <ProjectShowroom
-                  imageUrl={project.planoUrl!}
-                  aspectRatio={mapAspectRatio!}
-                  lots={lots}
-                  projectName={project.nombre}
-                />
-              ) : (
-                <div className="relative w-full aspect-video md:aspect-square lg:aspect-[4/3] bg-white shadow-2xl rounded-2xl overflow-hidden border border-black/5 p-4 md:p-8">
-                  <Image src={masterplan!.url} alt="Plano Maestro" fill className="object-contain p-4 md:p-8" />
-                </div>
-              )}
-            </section>
-          );
-        })()}
-
-        {/* 6. Ubicación */}
-        {project.googleMapsUrl && (
-          <section className={`py-[clamp(100px,15vw,220px)] px-6 md:px-12 max-w-[1200px] mx-auto text-center ${masterplan ? "pt-0" : ""}`}>
+        {/* 5. Plano Maestro (o Mapa) */}
+        {(masterplan || project.googleMapsUrl) && (
+          <section className="py-[clamp(100px,15vw,220px)] px-6 md:px-12 max-w-[1200px] mx-auto text-center">
               <div data-reveal className="flex justify-center items-baseline gap-[16px] text-[10px] tracking-[0.34em] uppercase text-[rgba(22,32,58,.45)] mb-[26px]">
                 <span className="text-[var(--color-pf-gold)]">Ubicación</span>
-                <span>Cómo Llegar</span>
+                <span>Distribución Lotes</span>
               </div>
               <h2 data-reveal className="font-serif font-light text-[clamp(36px,5vw,70px)] leading-[1] tracking-[-0.02em] mb-16 text-[var(--color-pf-navy)]">
-                Ubicación del Proyecto
+                {masterplan ? "Plano Maestro" : "Ubicación del Proyecto"}
               </h2>
-
+              
               <div className="relative w-full aspect-video md:aspect-square lg:aspect-[4/3] bg-white shadow-2xl rounded-2xl overflow-hidden border border-black/5 p-4 md:p-8">
-                <iframe src={project.googleMapsUrl} width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" className="rounded-xl"></iframe>
+                 {masterplan ? (
+                   <Image src={masterplan.url} alt="Plano Maestro" fill className="object-contain p-4 md:p-8" />
+                 ) : (
+                   <iframe src={project.googleMapsUrl!} width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" className="rounded-xl"></iframe>
+                 )}
               </div>
           </section>
         )}

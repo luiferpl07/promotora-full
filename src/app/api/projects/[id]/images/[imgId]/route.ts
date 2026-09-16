@@ -3,11 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string; imgId: string }> }
+  { params }: { params: { id: string; imgId: string } }
 ) {
   try {
-    const { imgId } = await params;
-    await prisma.projectImage.delete({ where: { id: imgId } });
+    await prisma.projectImage.delete({ where: { id: params.imgId } });
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json({ error: "Failed to delete image" }, { status: 500 });
@@ -16,13 +15,12 @@ export async function DELETE(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; imgId: string }> }
+  { params }: { params: { id: string; imgId: string } }
 ) {
   try {
-    const { imgId } = await params;
     const body = await request.json();
     const image = await prisma.projectImage.update({
-      where: { id: imgId },
+      where: { id: params.imgId },
       data: body,
     });
     return NextResponse.json(image);

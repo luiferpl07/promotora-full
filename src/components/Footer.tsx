@@ -46,7 +46,6 @@ export default function Footer() {
           <div className="flex gap-6 mt-4 text-[10px] tracking-[0.2em] uppercase text-[var(--color-pf-gold)]">
             {config.social_facebook && <a href={config.social_facebook} target="_blank" className="hover:text-[var(--color-pf-navy)] transition-colors">Facebook</a>}
             {config.social_instagram && <a href={config.social_instagram} target="_blank" className="hover:text-[var(--color-pf-navy)] transition-colors">Instagram</a>}
-            {config.social_whatsapp && <a href={config.social_whatsapp} target="_blank" className="hover:text-[var(--color-pf-navy)] transition-colors">WhatsApp</a>}
           </div>
         </div>
 

@@ -3,12 +3,11 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
     const images = await prisma.projectImage.findMany({
-      where: { projectId: id },
+      where: { projectId: params.id },
       orderBy: { orden: "asc" },
     });
     return NextResponse.json(images);
@@ -19,13 +18,12 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
     const body = await request.json();
     const image = await prisma.projectImage.create({
-      data: { ...body, projectId: id },
+      data: { ...body, projectId: params.id },
     });
     return NextResponse.json(image, { status: 201 });
   } catch (error) {

@@ -2,7 +2,6 @@
 
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
-import ScrollBadge from "@/components/ScrollBadge";
 import { useRef, useState, useEffect } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -15,6 +14,7 @@ if (typeof window !== "undefined") {
 
 export default function Contacto() {
   const container = useRef<HTMLDivElement>(null);
+  const scrollProgressRef = useRef<HTMLSpanElement>(null);
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [proyecto, setProyecto] = useState("");
@@ -35,6 +35,20 @@ export default function Contacto() {
   }, []);
 
   useGSAP(() => {
+    // Scroll Progress
+    const updateScrollProgress = () => {
+      if (scrollProgressRef.current) {
+        const max = ScrollTrigger.maxScroll(window);
+        const current = window.scrollY || document.documentElement.scrollTop;
+        let progress = 0;
+        if (max > 0) {
+          progress = Math.min(100, Math.max(0, Math.round((current / max) * 100)));
+        }
+        scrollProgressRef.current.textContent = progress.toString().padStart(2, '0');
+      }
+    };
+    gsap.ticker.add(updateScrollProgress);
+
     // Hero Text Reveal
     gsap.fromTo(
       ".hero-title-line",
@@ -90,6 +104,7 @@ export default function Contacto() {
       }
     });
 
+    return () => gsap.ticker.remove(updateScrollProgress);
   }, { scope: container });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -110,12 +125,11 @@ export default function Contacto() {
   return (
     <div ref={container} className="bg-[var(--color-pf-navy)]">
       <Navigation />
-      <ScrollBadge />
 
       <main className="overflow-x-hidden font-sans relative z-10 text-[var(--color-pf-bg)]">
-
+        
         {/* Dark Hero Section */}
-        <section className="relative min-h-screen flex flex-col items-center justify-center pt-32 pb-24 px-8 overflow-hidden bg-[var(--color-pf-navy)]">
+        <section className="relative min-h-[90vh] flex flex-col items-center justify-center pt-32 pb-24 px-8 overflow-hidden bg-[var(--color-pf-navy)]">
           <div data-parallax className="absolute inset-0 z-0">
              <div data-zoom className="absolute inset-[-10%] w-[120%] h-[120%]">
                <Image 
@@ -126,7 +140,7 @@ export default function Contacto() {
                  priority
                />
              </div>
-             <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-pf-navy)]/80 via-black/50 to-black/80"></div>
+             <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-pf-navy)]/80 via-black/50 to-[var(--color-pf-bg)]"></div>
           </div>
           
           <div className="relative z-10 text-center w-full max-w-[1400px] mx-auto mt-auto pb-[10vh]">
@@ -136,7 +150,7 @@ export default function Contacto() {
               </span>
             </div>
             
-            <h1 className="font-serif text-[clamp(40px,8vw,120px)] uppercase tracking-tighter leading-[0.85] font-normal scale-y-110 text-white drop-shadow-2xl">
+            <h1 className="font-serif text-[clamp(40px,8vw,120px)] uppercase tracking-tighter leading-[0.85] font-normal scale-y-110 text-white">
               <div className="overflow-hidden"><div className="hero-title-line">AGENDA TU</div></div>
               <div className="overflow-hidden"><div className="hero-title-line text-[var(--color-pf-gold)]">VISITA</div></div>
             </h1>
@@ -148,6 +162,13 @@ export default function Contacto() {
             </div>
           </div>
           
+          <div className="absolute bottom-12 left-12 flex flex-col items-center gap-4 text-[var(--color-pf-navy)]">
+             <div className="w-[1px] h-10 bg-current opacity-40"></div>
+             <span ref={scrollProgressRef} className="text-[12px] tracking-[0.2em] font-sans font-bold">00</span>
+             <div className="w-[1px] h-48 md:h-64 bg-current opacity-20"></div>
+             <span className="text-[9px] tracking-[0.4em] font-mono uppercase" style={{ writingMode: 'vertical-rl' }}>SCROLL</span>
+             <svg width="10" height="30" viewBox="0 0 10 30" fill="none" stroke="currentColor" strokeWidth="1" className="opacity-60"><path d="M5 0 L5 30 M1 26 L5 30 L9 26" /></svg>
+          </div>
         </section>
 
         {/* Concierge Form & Map */}
@@ -265,7 +286,7 @@ export default function Contacto() {
                <div data-reveal className="grid gap-6 text-[11px] tracking-[0.2em] uppercase font-mono text-[var(--color-pf-navy)]/50">
                   <div className="pb-6 border-b border-[var(--color-pf-navy)]/10 flex flex-col gap-2">
                     <span className="text-[var(--color-pf-gold)]">Horario de Atención</span>
-                    <span className="text-[var(--color-pf-navy)]">{config.contacto_horario || "Lunes a domingo · 8:00 a.m. — 5:00 p.m."}</span>
+                    <span className="text-[var(--color-pf-navy)]">Lunes a domingo · 8:00 a.m. — 5:00 p.m.</span>
                   </div>
                   <div className="pb-6 border-b border-[var(--color-pf-navy)]/10 flex flex-col gap-2">
                     <span className="text-[var(--color-pf-gold)]">Ubicación (Principal)</span>
@@ -297,4 +318,3 @@ export default function Contacto() {
     </div>
   );
 }
-

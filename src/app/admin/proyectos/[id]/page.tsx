@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Button, Card, CardTitle, Field, Icon, LinkButton, LoadingBlock, TextArea, TextInput, Select, Toggle } from "@/components/admin/AdminUI";
 
 interface ProjectImage {
   id: string;
@@ -37,22 +36,6 @@ interface Project {
 
 const TIPOS = ["hero", "galeria", "masterplan", "amenidad"];
 
-interface Amenidad {
-  texto: string;
-  foto?: string;
-}
-
-function normalizeAmenidades(raw: string | null): Amenidad[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map((a: any) => typeof a === "string" ? { texto: a } : a);
-  } catch {
-    return [];
-  }
-}
-
 export default function AdminProyectoEditor() {
   const params = useParams();
   const router = useRouter();
@@ -63,18 +46,12 @@ export default function AdminProyectoEditor() {
   const [images, setImages] = useState<ProjectImage[]>([]);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
-  const [masterplanUploading, setMasterplanUploading] = useState(false);
-  const [amenidadesList, setAmenidadesList] = useState<Amenidad[]>([]);
+  const [amenidadesList, setAmenidadesList] = useState<string[]>([]);
   const [newAmenidad, setNewAmenidad] = useState("");
-  const [newAmenidadFoto, setNewAmenidadFoto] = useState<string | undefined>(undefined);
-  const [amenidadFotoUploading, setAmenidadFotoUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
-  const masterplanInputRef = useRef<HTMLInputElement>(null);
-  const amenidadFotoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isNew) {
@@ -83,7 +60,7 @@ export default function AdminProyectoEditor() {
         .then((data: Project) => {
           setForm(data);
           setImages(data.images || []);
-          setAmenidadesList(normalizeAmenidades(data.amenidades));
+          setAmenidadesList(data.amenidades ? JSON.parse(data.amenidades) : []);
         })
         .finally(() => setLoading(false));
     }
@@ -145,41 +122,6 @@ export default function AdminProyectoEditor() {
     }
   };
 
-  const masterplanImage = images.find(i => i.tipo === "masterplan");
-
-  const handleMasterplanUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !form.id) return;
-    setMasterplanUploading(true);
-    try {
-      const url = await uploadFile(file, "projects");
-      if (masterplanImage) {
-        await fetch(`/api/projects/${form.id}/images/${masterplanImage.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url }),
-        });
-        setImages(prev => prev.map(i => i.id === masterplanImage.id ? { ...i, url } : i));
-      } else {
-        const res = await fetch(`/api/projects/${form.id}/images`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url, alt: "Plano Maestro", tipo: "masterplan", orden: images.length }),
-        });
-        const newImg = await res.json();
-        setImages(prev => [...prev, newImg]);
-      }
-    } finally {
-      setMasterplanUploading(false);
-    }
-  };
-
-  const removeMasterplan = async () => {
-    if (!masterplanImage) return;
-    await fetch(`/api/projects/${form.id}/images/${masterplanImage.id}`, { method: "DELETE" });
-    setImages(prev => prev.filter(i => i.id !== masterplanImage.id));
-  };
-
   const deleteImage = async (imgId: string) => {
     await fetch(`/api/projects/${form.id}/images/${imgId}`, { method: "DELETE" });
     setImages(prev => prev.filter(i => i.id !== imgId));
@@ -196,29 +138,16 @@ export default function AdminProyectoEditor() {
 
   const addAmenidad = () => {
     if (!newAmenidad.trim()) return;
-    const updated = [...amenidadesList, { texto: newAmenidad.trim(), foto: newAmenidadFoto }];
+    const updated = [...amenidadesList, newAmenidad.trim()];
     setAmenidadesList(updated);
     setForm(prev => ({ ...prev, amenidades: JSON.stringify(updated) }));
     setNewAmenidad("");
-    setNewAmenidadFoto(undefined);
   };
 
   const removeAmenidad = (i: number) => {
     const updated = amenidadesList.filter((_, idx) => idx !== i);
     setAmenidadesList(updated);
     setForm(prev => ({ ...prev, amenidades: JSON.stringify(updated) }));
-  };
-
-  const handleAmenidadFotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setAmenidadFotoUploading(true);
-    try {
-      const url = await uploadFile(file, "projects");
-      setNewAmenidadFoto(url);
-    } finally {
-      setAmenidadFotoUploading(false);
-    }
   };
 
   const handleSave = async () => {
@@ -245,63 +174,56 @@ export default function AdminProyectoEditor() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!form.id) return;
-    if (!confirm(`¿Eliminar el proyecto "${form.nombre}"? Esta acción no se puede deshacer y borrará también su galería de imágenes.`)) return;
-    setDeleting(true);
-    try {
-      await fetch(`/api/projects/${form.id}`, { method: "DELETE" });
-      router.push("/admin/proyectos");
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  if (loading) return <LoadingBlock />;
+  if (loading) return <div className="p-12 text-center text-gray-400">Cargando...</div>;
 
   return (
     <div className="space-y-8 max-w-5xl">
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="flex items-center justify-between">
         <div>
-          <Link href="/admin/proyectos" className="text-xs uppercase tracking-widest font-mono text-[var(--color-pf-navy)]/40 hover:text-[var(--color-pf-gold)] transition-colors">← Proyectos</Link>
-          <h1 className="font-serif font-light text-3xl text-[var(--color-pf-navy)] mt-1">{isNew ? "Nuevo Proyecto" : `Editar: ${form.nombre}`}</h1>
+          <Link href="/admin/proyectos" className="text-sm text-gray-400 hover:text-gray-600">← Proyectos</Link>
+          <h1 className="text-2xl font-bold text-gray-900 mt-1">{isNew ? "Nuevo Proyecto" : `Editar: ${form.nombre}`}</h1>
         </div>
-        <div className="flex gap-3">
-          {!isNew && (
-            <Button variant="danger" onClick={handleDelete} disabled={deleting}>
-              <Icon name="trash" className="w-4 h-4" /> {deleting ? "Eliminando..." : "Eliminar"}
-            </Button>
-          )}
-          <Button onClick={handleSave} disabled={saving} size="lg">
-            {saving ? "Guardando..." : "Guardar Cambios"}
-          </Button>
-        </div>
+        <button onClick={handleSave} disabled={saving} className="px-8 py-3 bg-[#16203A] text-white rounded-xl text-sm font-medium hover:bg-[#C8A23C] transition-colors disabled:opacity-50">
+          {saving ? "Guardando..." : "Guardar Cambios"}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Basic Info */}
-        <Card className="p-6 space-y-5">
-          <CardTitle>Información Básica</CardTitle>
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-5">
+          <h3 className="font-semibold text-gray-900 border-b border-gray-100 pb-3">Información Básica</h3>
           {[
             { label: "Nombre del Proyecto", field: "nombre" },
             { label: "Slug (URL)", field: "slug", hint: "ej: lagos-del-palmar" },
             { label: "Descripción Corta", field: "descripcion", textarea: true },
             { label: "Descripción Larga", field: "descripcionLarga", textarea: true },
           ].map(({ label, field, hint, textarea }) => (
-            <Field key={field} label={label}>
+            <div key={field}>
+              <label className="block text-xs uppercase tracking-widest font-medium text-gray-500 mb-2">{label}</label>
               {textarea ? (
-                <TextArea value={(form as any)[field] || ""} onChange={e => handleChange(field, e.target.value)} rows={3} />
+                <textarea
+                  value={(form as any)[field] || ""}
+                  onChange={e => handleChange(field, e.target.value)}
+                  rows={3}
+                  className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#C8A23C] transition-colors"
+                />
               ) : (
-                <TextInput type="text" value={(form as any)[field] || ""} onChange={e => handleChange(field, e.target.value)} placeholder={hint} />
+                <input
+                  type="text"
+                  value={(form as any)[field] || ""}
+                  onChange={e => handleChange(field, e.target.value)}
+                  placeholder={hint}
+                  className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#C8A23C] transition-colors"
+                />
               )}
-            </Field>
+            </div>
           ))}
-        </Card>
+        </div>
 
         {/* Stats & Config */}
         <div className="space-y-6">
-          <Card className="p-6 space-y-5">
-            <CardTitle>Estadísticas</CardTitle>
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-5">
+            <h3 className="font-semibold text-gray-900 border-b border-gray-100 pb-3">Estadísticas</h3>
             {[
               { label: "Número de Lotes", field: "lotes", type: "number" },
               { label: "Área Desde (m²)", field: "areaDesde", type: "number" },
@@ -309,212 +231,165 @@ export default function AdminProyectoEditor() {
               { label: "Plan de Pago", field: "planPago" },
               { label: "Orden en Portafolio", field: "orden", type: "number" },
             ].map(({ label, field, type }) => (
-              <Field key={field} label={label}>
-                <TextInput
+              <div key={field}>
+                <label className="block text-xs uppercase tracking-widest font-medium text-gray-500 mb-2">{label}</label>
+                <input
                   type={type || "text"}
                   value={(form as any)[field] || ""}
                   onChange={e => handleChange(field, type === "number" ? +e.target.value : e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#C8A23C] transition-colors"
                 />
-              </Field>
+              </div>
             ))}
-            <Field label="Estado">
-              <Select value={form.estado || "activo"} onChange={e => handleChange("estado", e.target.value)}>
+            <div>
+              <label className="block text-xs uppercase tracking-widest font-medium text-gray-500 mb-2">Estado</label>
+              <select value={form.estado || "activo"} onChange={e => handleChange("estado", e.target.value)} className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#C8A23C]">
                 <option value="activo">Activo</option>
                 <option value="proximamente">Próximamente</option>
                 <option value="agotado">Agotado</option>
-              </Select>
-            </Field>
-            <div className="flex items-center gap-4">
-              <span className="text-[10px] uppercase tracking-[0.2em] font-mono font-medium text-[var(--color-pf-navy)]/50">Publicado</span>
-              <Toggle checked={!!form.publicado} onChange={() => handleChange("publicado", !form.publicado)} />
+              </select>
             </div>
-          </Card>
+            <div className="flex items-center gap-4">
+              <label className="block text-xs uppercase tracking-widest font-medium text-gray-500">Publicado</label>
+              <button onClick={() => handleChange("publicado", !form.publicado)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.publicado ? "bg-[#C8A23C]" : "bg-gray-200"}`}>
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.publicado ? "translate-x-6" : "translate-x-1"}`} />
+              </button>
+            </div>
+          </div>
 
           {/* Ubicación */}
-          <Card className="p-6 space-y-5">
-            <CardTitle>Ubicación</CardTitle>
-            <Field label="Texto de Ubicación">
-              <TextInput type="text" value={form.ubicacionTexto || ""} onChange={e => handleChange("ubicacionTexto", e.target.value)} />
-            </Field>
-            <Field label="URL Embed de Google Maps">
-              <TextArea value={form.googleMapsUrl || ""} onChange={e => handleChange("googleMapsUrl", e.target.value)} rows={3} className="font-mono text-xs" />
-            </Field>
-          </Card>
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-5">
+            <h3 className="font-semibold text-gray-900 border-b border-gray-100 pb-3">Ubicación</h3>
+            <div>
+              <label className="block text-xs uppercase tracking-widest font-medium text-gray-500 mb-2">Texto de Ubicación</label>
+              <input type="text" value={form.ubicacionTexto || ""} onChange={e => handleChange("ubicacionTexto", e.target.value)} className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#C8A23C]" />
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-widest font-medium text-gray-500 mb-2">URL Embed de Google Maps</label>
+              <textarea value={form.googleMapsUrl || ""} onChange={e => handleChange("googleMapsUrl", e.target.value)} rows={3} className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#C8A23C] font-mono text-xs" />
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Logo del Proyecto */}
-      <Card className="p-6">
-        <CardTitle hint="(Aparecerá en el header cuando el visitante esté en este proyecto)">Logo del Proyecto</CardTitle>
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <h3 className="font-semibold text-gray-900 border-b border-gray-100 pb-3 mb-6">
+          Logo del Proyecto <span className="text-xs text-gray-400 font-normal ml-2">(Aparecerá en el header cuando el visitante esté en este proyecto)</span>
+        </h3>
         <div className="flex items-center gap-8">
-          <div className="w-40 h-40 border-2 border-dashed border-[var(--color-pf-navy)]/15 rounded-xl flex items-center justify-center bg-[var(--color-pf-beige-light)] flex-shrink-0 overflow-hidden">
+          <div className="w-40 h-40 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center bg-gray-50 flex-shrink-0 overflow-hidden">
             {form.logo ? (
               <Image src={form.logo} alt="Logo" width={160} height={160} className="w-full h-full object-contain p-4" />
             ) : (
-              <Icon name="shield" className="w-10 h-10 text-[var(--color-pf-navy)]/20" />
+              <span className="text-gray-300 text-4xl">🛡️</span>
             )}
           </div>
           <div className="flex-1 space-y-4">
-            <p className="text-sm text-[var(--color-pf-navy)]/50">Sube el escudo o logo oficial del proyecto. Recomendado: PNG con fondo transparente, mínimo 300x300px.</p>
+            <p className="text-sm text-gray-500">Sube el escudo o logo oficial del proyecto. Recomendado: PNG con fondo transparente, mínimo 300x300px.</p>
             <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-            <Button variant="outline" onClick={() => logoInputRef.current?.click()} disabled={logoUploading}>
-              <Icon name="upload" className="w-4 h-4" /> {logoUploading ? "Subiendo..." : "Subir Logo"}
-            </Button>
-            {form.logo && <p className="text-xs text-[var(--color-pf-navy)]/30 break-all">{form.logo}</p>}
+            <button onClick={() => logoInputRef.current?.click()} disabled={logoUploading} className="px-6 py-3 border border-[#16203A] text-[#16203A] rounded-lg text-sm font-medium hover:bg-[#16203A] hover:text-white transition-colors">
+              {logoUploading ? "Subiendo..." : "Subir Logo"}
+            </button>
+            {form.logo && <p className="text-xs text-gray-400 break-all">{form.logo}</p>}
           </div>
         </div>
-      </Card>
+      </div>
 
       {/* Imagen Hero */}
-      <Card className="p-6">
-        <CardTitle>Imagen Principal (Hero)</CardTitle>
-        <div className="flex items-start gap-8 flex-wrap">
-          <div className="w-64 h-40 border-2 border-dashed border-[var(--color-pf-navy)]/15 rounded-xl overflow-hidden bg-[var(--color-pf-beige-light)] flex-shrink-0">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <h3 className="font-semibold text-gray-900 border-b border-gray-100 pb-3 mb-6">Imagen Principal (Hero)</h3>
+        <div className="flex items-start gap-8">
+          <div className="w-64 h-40 border-2 border-dashed border-gray-200 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0">
             {form.imgHero ? (
               <Image src={form.imgHero} alt="Hero" width={256} height={160} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-[var(--color-pf-navy)]/20 text-sm">Sin imagen</div>
+              <div className="w-full h-full flex items-center justify-center text-gray-300">Sin imagen</div>
             )}
           </div>
-          <div className="flex-1 space-y-4 min-w-[240px]">
+          <div className="flex-1 space-y-4">
             <input type="file" accept="image/*" onChange={handleHeroUpload} className="hidden" id="heroInput" />
-            <label htmlFor="heroInput" className="cursor-pointer inline-flex items-center gap-2 px-6 py-3 border border-[var(--color-pf-navy)] text-[var(--color-pf-navy)] rounded-full text-[11px] uppercase tracking-[0.15em] font-semibold hover:bg-[var(--color-pf-navy)] hover:text-white transition-colors">
-              <Icon name="upload" className="w-4 h-4" /> {uploading ? "Subiendo..." : "Subir Imagen Hero"}
+            <label htmlFor="heroInput" className="cursor-pointer inline-block px-6 py-3 border border-[#16203A] text-[#16203A] rounded-lg text-sm font-medium hover:bg-[#16203A] hover:text-white transition-colors">
+              {uploading ? "Subiendo..." : "Subir Imagen Hero"}
             </label>
-            <Field label="O pega la URL">
-              <TextInput type="text" value={form.imgHero || ""} onChange={e => handleChange("imgHero", e.target.value)} />
-            </Field>
+            <div>
+              <label className="block text-xs uppercase tracking-widest font-medium text-gray-500 mb-2">O pega la URL:</label>
+              <input type="text" value={form.imgHero || ""} onChange={e => handleChange("imgHero", e.target.value)} className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#C8A23C]" />
+            </div>
           </div>
         </div>
-      </Card>
-
-      {/* Plano Maestro */}
-      {!isNew && (
-        <Card className="p-6">
-          <CardTitle hint="(Se muestra en la sección “Plano Maestro” de la página del proyecto; si no se sube, se muestra el mapa en su lugar)">Plano Maestro</CardTitle>
-          <div className="flex items-start gap-8 flex-wrap">
-            <div className="w-64 h-40 border-2 border-dashed border-[var(--color-pf-navy)]/15 rounded-xl overflow-hidden bg-[var(--color-pf-beige-light)] flex-shrink-0">
-              {masterplanImage ? (
-                <Image src={masterplanImage.url} alt="Plano Maestro" width={256} height={160} className="w-full h-full object-contain" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-[var(--color-pf-navy)]/20 text-sm text-center px-4">Sin plano subido</div>
-              )}
-            </div>
-            <div className="flex-1 space-y-4 min-w-[240px]">
-              <input ref={masterplanInputRef} type="file" accept="image/*" onChange={handleMasterplanUpload} className="hidden" />
-              <div className="flex gap-3">
-                <Button variant="outline" onClick={() => masterplanInputRef.current?.click()} disabled={masterplanUploading}>
-                  <Icon name="upload" className="w-4 h-4" /> {masterplanUploading ? "Subiendo..." : masterplanImage ? "Reemplazar Plano" : "Subir Plano"}
-                </Button>
-                {masterplanImage && (
-                  <Button variant="danger" onClick={removeMasterplan}>
-                    <Icon name="trash" className="w-4 h-4" /> Quitar
-                  </Button>
-                )}
-              </div>
-              <p className="text-sm text-[var(--color-pf-navy)]/50">Sube el plano maestro o de distribución de lotes del proyecto (imagen o escaneo del plano).</p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Mapa Interactivo (ubicación real + lotes) */}
-      {!isNew && (
-        <Card className="p-6">
-          <CardTitle hint="(Ubica el plano sobre el mapa satelital real y marca cada lote con su estado)">Mapa Interactivo</CardTitle>
-          <p className="text-sm text-[var(--color-pf-navy)]/50 mb-4">Calibra la posición real del proyecto sobre un mapa satelital y ubica cada lote con su estado (disponible/reservado/vendido).</p>
-          <LinkButton href={`/admin/proyectos/${form.id}/mapa`} variant="outline">
-            <Icon name="external" className="w-4 h-4" /> Abrir Editor de Mapa
-          </LinkButton>
-        </Card>
-      )}
+      </div>
 
       {/* Galería de Imágenes */}
       {!isNew && (
-        <Card className="p-6">
-          <CardTitle hint={`(${images.length} imágenes)`}>Galería de Imágenes</CardTitle>
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+          <h3 className="font-semibold text-gray-900 border-b border-gray-100 pb-3 mb-6">
+            Galería de Imágenes <span className="text-xs text-gray-400 font-normal ml-2">({images.length} imágenes)</span>
+          </h3>
 
           {/* Upload zone */}
           <div className="mb-8">
             <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="hidden" />
-            <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="w-full py-8 border-2 border-dashed border-[var(--color-pf-navy)]/15 rounded-xl text-sm text-[var(--color-pf-navy)]/40 hover:border-[var(--color-pf-gold)] hover:text-[var(--color-pf-gold)] transition-colors flex items-center justify-center gap-2">
-              <Icon name="upload" className="w-4 h-4" />
-              {uploading ? "Subiendo imágenes..." : "Haz clic para subir imágenes (puedes seleccionar varias)"}
+            <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="w-full py-8 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400 hover:border-[#C8A23C] hover:text-[#C8A23C] transition-colors">
+              {uploading ? "⏳ Subiendo imágenes..." : "+ Haz clic para subir imágenes (puedes seleccionar varias)"}
             </button>
           </div>
 
           {/* Grid de imágenes */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {images.map((img) => (
-              <div key={img.id} className="group relative rounded-xl overflow-hidden border border-[var(--color-pf-navy)]/10 bg-[var(--color-pf-beige-light)]">
+              <div key={img.id} className="group relative rounded-xl overflow-hidden border border-gray-100 bg-gray-50">
                 <div className="aspect-[4/3] relative">
                   <Image src={img.url} alt={img.alt || ""} fill className="object-cover" />
                 </div>
                 <div className="p-2 space-y-2">
-                  <Select value={img.tipo} onChange={e => updateImageTipo(img, e.target.value)} className="!text-xs !py-1.5">
+                  <select
+                    value={img.tipo}
+                    onChange={e => updateImageTipo(img, e.target.value)}
+                    className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-[#C8A23C]"
+                  >
                     {TIPOS.map(t => <option key={t} value={t}>{t}</option>)}
-                  </Select>
-                  <button onClick={() => deleteImage(img.id)} className="w-full text-xs text-red-400 hover:text-red-600 transition-colors flex items-center justify-center gap-1.5 py-1">
-                    <Icon name="trash" className="w-3.5 h-3.5" /> Eliminar
-                  </button>
+                  </select>
+                  <button onClick={() => deleteImage(img.id)} className="w-full text-xs text-red-400 hover:text-red-600 transition-colors">Eliminar</button>
                 </div>
               </div>
             ))}
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Amenidades */}
-      <Card className="p-6">
-        <CardTitle hint="(la foto es opcional; se muestra como ícono de la amenidad en el sitio)">Amenidades</CardTitle>
-        <div className="flex gap-3 mb-2 flex-wrap items-start">
-          <TextInput
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <h3 className="font-semibold text-gray-900 border-b border-gray-100 pb-3 mb-6">Amenidades</h3>
+        <div className="flex gap-3 mb-4">
+          <input
             type="text"
             value={newAmenidad}
             onChange={e => setNewAmenidad(e.target.value)}
             onKeyDown={e => e.key === "Enter" && addAmenidad()}
             placeholder="ej: 9 Lagos Naturales"
-            className="flex-1 min-w-[200px]"
+            className="flex-1 border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#C8A23C]"
           />
-          <input ref={amenidadFotoInputRef} type="file" accept="image/*" onChange={handleAmenidadFotoUpload} className="hidden" />
-          <Button variant="outline" onClick={() => amenidadFotoInputRef.current?.click()} disabled={amenidadFotoUploading}>
-            {newAmenidadFoto ? (
-              <Image src={newAmenidadFoto} alt="" width={20} height={20} className="w-5 h-5 rounded object-cover" />
-            ) : (
-              <Icon name="image" className="w-4 h-4" />
-            )}
-            {amenidadFotoUploading ? "Subiendo..." : newAmenidadFoto ? "Foto lista" : "Foto (opcional)"}
-          </Button>
-          <Button onClick={addAmenidad}>Agregar</Button>
+          <button onClick={addAmenidad} className="px-6 py-2 bg-[#16203A] text-white rounded-lg text-sm hover:bg-[#C8A23C] transition-colors">Agregar</button>
         </div>
-        {newAmenidadFoto && (
-          <button onClick={() => setNewAmenidadFoto(undefined)} className="text-xs text-[var(--color-pf-navy)]/40 hover:text-red-500 mb-4">Quitar foto seleccionada ×</button>
-        )}
-        <div className="flex flex-wrap gap-3 mt-4">
+        <div className="flex flex-wrap gap-2">
           {amenidadesList.map((a, i) => (
-            <span key={i} className="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-[var(--color-pf-beige-light)] rounded-full text-sm text-[var(--color-pf-navy)]">
-              {a.foto ? (
-                <Image src={a.foto} alt="" width={24} height={24} className="w-6 h-6 rounded-full object-cover" />
-              ) : (
-                <span className="w-6 h-6 rounded-full bg-[var(--color-pf-navy)]/10 flex items-center justify-center flex-shrink-0">
-                  <Icon name="check" className="w-3 h-3 text-[var(--color-pf-navy)]/40" />
-                </span>
-              )}
-              {a.texto}
-              <button onClick={() => removeAmenidad(i)} className="text-[var(--color-pf-navy)]/40 hover:text-red-500 font-bold">×</button>
+            <span key={i} className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-700">
+              {a}
+              <button onClick={() => removeAmenidad(i)} className="text-gray-400 hover:text-red-500 font-bold">×</button>
             </span>
           ))}
         </div>
-      </Card>
+      </div>
 
       {/* Save Button */}
       <div className="flex justify-end gap-4 pb-8">
-        <Link href="/admin/proyectos" className="px-6 py-3 border border-[var(--color-pf-navy)]/15 text-[var(--color-pf-navy)]/50 rounded-full text-[11px] uppercase tracking-[0.15em] font-semibold hover:text-[var(--color-pf-navy)] transition-colors flex items-center">
+        <Link href="/admin/proyectos" className="px-6 py-3 border border-gray-200 text-gray-500 rounded-xl text-sm hover:text-gray-700 transition-colors">
           Cancelar
         </Link>
-        <Button onClick={handleSave} disabled={saving} size="lg">
+        <button onClick={handleSave} disabled={saving} className="px-10 py-3 bg-[#16203A] text-white rounded-xl text-sm font-medium hover:bg-[#C8A23C] transition-colors disabled:opacity-50">
           {saving ? "Guardando..." : "Guardar Cambios"}
-        </Button>
+        </button>
       </div>
     </div>
   );

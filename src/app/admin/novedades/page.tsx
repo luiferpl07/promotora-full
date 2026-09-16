@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Icon, LinkButton, LoadingBlock, PageHeader, TableShell, Thead, Toggle } from "@/components/admin/AdminUI";
 
 interface NewsItem {
   id: string;
@@ -21,11 +21,7 @@ export default function AdminNovedadesList() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/news")
-      .then(r => r.json())
-      .then(d => setItems(Array.isArray(d) ? d : []))
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false));
+    fetch("/api/news").then(r => r.json()).then(setItems).finally(() => setLoading(false));
   }, []);
 
   const togglePublicado = async (n: NewsItem) => {
@@ -45,56 +41,63 @@ export default function AdminNovedadesList() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        kicker="Journal"
-        title="Novedades"
-        subtitle="Gestiona las noticias y eventos publicados."
-        action={<LinkButton href="/admin/novedades/nuevo"><Icon name="plus" className="w-4 h-4" /> Nueva Novedad</LinkButton>}
-      />
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Novedades</h1>
+          <p className="text-gray-500 mt-1">Gestiona las noticias y eventos publicados.</p>
+        </div>
+        <Link href="/admin/novedades/nuevo" className="px-6 py-3 bg-[#16203A] text-white rounded-xl text-sm font-medium hover:bg-[#C8A23C] transition-colors">
+          + Nueva Novedad
+        </Link>
+      </div>
 
-      {loading ? (
-        <TableShell><tbody><tr><td><LoadingBlock /></td></tr></tbody></TableShell>
-      ) : (
-        <TableShell>
-          <Thead cols={["Noticia", "Fecha", "Publicada", "Acciones"]} />
-          <tbody className="divide-y divide-[var(--color-pf-navy)]/5">
-            {items.map(n => (
-              <tr key={n.id} className="hover:bg-[var(--color-pf-beige-light)]/60 transition-colors">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-4">
-                    {n.imgDestacada && (
-                      <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
-                        <Image src={n.imgDestacada} alt={n.titulo} width={48} height={48} className="w-full h-full object-cover" />
-                      </div>
-                    )}
-                    <div>
-                      <div className="font-medium text-[var(--color-pf-navy)]">{n.titulo}</div>
-                      <div className="text-xs text-[var(--color-pf-navy)]/35 mt-0.5 max-w-xs truncate">{n.resumen}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-xs text-[var(--color-pf-navy)]/40">{new Date(n.fecha).toLocaleDateString("es-CO")}</td>
-                <td className="px-6 py-4">
-                  <Toggle checked={n.publicado} onChange={() => togglePublicado(n)} />
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex gap-2">
-                    <Link href={`/admin/novedades/${n.id}`} className="w-8 h-8 flex items-center justify-center bg-[var(--color-pf-navy)] text-white rounded-lg hover:bg-[var(--color-pf-gold)] hover:text-[var(--color-pf-navy)] transition-colors" title="Editar">
-                      <Icon name="pencil" className="w-4 h-4" />
-                    </Link>
-                    <Link href={`/novedades/${n.slug}`} target="_blank" className="w-8 h-8 flex items-center justify-center border border-[var(--color-pf-navy)]/15 text-[var(--color-pf-navy)]/50 rounded-lg hover:text-[var(--color-pf-navy)] transition-colors" title="Ver en el sitio">
-                      <Icon name="external" className="w-4 h-4" />
-                    </Link>
-                    <button onClick={() => handleDelete(n.id)} className="w-8 h-8 flex items-center justify-center border border-red-200 text-red-400 rounded-lg hover:bg-red-50 transition-colors" title="Eliminar">
-                      <Icon name="trash" className="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="p-12 text-center text-gray-400">Cargando...</div>
+        ) : (
+          <table className="w-full text-left text-sm text-gray-600">
+            <thead className="bg-gray-50 text-gray-500 uppercase tracking-wider text-xs font-medium">
+              <tr>
+                <th className="px-6 py-4">Noticia</th>
+                <th className="px-6 py-4">Fecha</th>
+                <th className="px-6 py-4">Publicada</th>
+                <th className="px-6 py-4">Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </TableShell>
-      )}
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {items.map(n => (
+                <tr key={n.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-4">
+                      {n.imgDestacada && (
+                        <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                          <Image src={n.imgDestacada} alt={n.titulo} width={48} height={48} className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-medium text-gray-900">{n.titulo}</div>
+                        <div className="text-xs text-gray-400 mt-0.5 max-w-xs truncate">{n.resumen}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-xs text-gray-400">{new Date(n.fecha).toLocaleDateString("es-CO")}</td>
+                  <td className="px-6 py-4">
+                    <button onClick={() => togglePublicado(n)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${n.publicado ? "bg-[#C8A23C]" : "bg-gray-200"}`}>
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${n.publicado ? "translate-x-6" : "translate-x-1"}`} />
+                    </button>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex gap-2">
+                      <Link href={`/admin/novedades/${n.id}`} className="px-3 py-1 text-xs bg-[#16203A] text-white rounded-lg hover:bg-[#C8A23C] transition-colors">Editar</Link>
+                      <button onClick={() => handleDelete(n.id)} className="px-3 py-1 text-xs border border-red-200 text-red-400 rounded-lg hover:bg-red-50 transition-colors">Eliminar</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }

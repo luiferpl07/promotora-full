@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "promotora-full-clone",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "C:\\promotora-full", "run", "dev"],
+      "port": 3000
+    }
+  ]
+}

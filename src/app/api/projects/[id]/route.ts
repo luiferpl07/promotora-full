@@ -3,12 +3,11 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
     const project = await prisma.project.findUnique({
-      where: { id },
+      where: { id: params.id },
       include: { images: { orderBy: { orden: "asc" } } },
     });
     if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -20,14 +19,13 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
     const body = await request.json();
-    const { images, createdAt, updatedAt, id: _id, ...data } = body;
+    const { images, createdAt, updatedAt, id, ...data } = body;
     const project = await prisma.project.update({
-      where: { id },
+      where: { id: params.id },
       data,
     });
     return NextResponse.json(project);
@@ -38,11 +36,10 @@ export async function PUT(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
-    await prisma.project.delete({ where: { id } });
+    await prisma.project.delete({ where: { id: params.id } });
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json({ error: "Failed to delete project" }, { status: 500 });
